@@ -127,6 +127,9 @@ int main( int argc, char* argv[])
     std::cout << "psi max in g1d_out is "<<psipmax<<"\n";
     dg::geo::CurvilinearGridX2d gridX2d( generator, fx_0, 0., npsi, Npsi, Neta, dg::DIR_NEU, dg::NEU);
     std::cout << "psi max in gridX2d is "<<gridX2d.x1()<<"\n";
+    std::cout << "psi min in gridX2d is "<<gridX2d.x0()<<"\n";
+    std::cout << "eta max in gridX2d is "<<gridX2d.y1()<<"\n";
+    std::cout << "eta min in gridX2d is "<<gridX2d.y0()<<"\n";
     std::cout << "DONE!\n";
     //Create 1d grid
     dg::Grid1d g1d_out(psipO, psipmax, 3, Npsi, dg::DIR_NEU); //inner value is always 0
@@ -336,12 +339,13 @@ int main( int argc, char* argv[])
                     available = false;
                 }
                 if( available)
-                {
+                { 
                     err = nc_get_vara_double( ncid, dataID,
                         start2d, count2d, transferH2d.data());
                     //2. Compute fsa and output fsa
                     dg::blas2::symv( grid2gridX2d, transferH2d, transferH2dX); //interpolate onto X-point grid
-                    dg::blas1::pointwiseDot( transferH2dX, volX2d, transferH2dX); //multiply by sqrt(g)
+                    dg::blas1::pointwiseDot(volX2d, dg::evaluate(dg::geo::Grid_cutter(M_PI, 30., 0., -0.25),gridX2d.grid()), volX2d); //cut the volume grid to do the partial flux surface integral                           
+                    dg::blas1::pointwiseDot( transferH2dX, volX2d, transferH2dX); //multiply by sqrt(g)                  
                     poloidal_average( transferH2dX, t1d, false); //average over eta
                     dg::blas1::scal( t1d, 4*M_PI*M_PI*f0); //
                     dg::blas1::pointwiseDivide( t1d, dvdpsip, fsa1d );
