@@ -134,7 +134,8 @@ int main( int argc, char* argv[])
     //Create 1d grid
     dg::Grid1d g1d_out(psipO, psipmax, 3, Npsi, dg::DIR_NEU); //inner value is always 0
     const double f0 = ( gridX2d.x1() - gridX2d.x0() ) / ( psipmax - psipO );
-    dg::HVec t1d = dg::evaluate( dg::zero, g1d_out), fsa1d( t1d);
+    std::cout << "f0 is "<<f0<<"\n";
+    dg::HVec t1d = dg::evaluate( dg::zero, g1d_out), fsa1d( t1d), part_fsa1d(t1d); //	NEW: Definition of partial fsa1d
     dg::HVec transfer1d = dg::evaluate(dg::zero,g1d_out);
 
     /// ------------------- Compute 1d flux labels ---------------------//
@@ -146,7 +147,7 @@ int main( int argc, char* argv[])
     //metric and map
     dg::SparseTensor<dg::HVec> metricX = gridX2d.metric();
     std::vector<dg::HVec > coordsX = gridX2d.map();
-    dg::HVec volX2d = dg::tensor::volume2d( metricX);
+    dg::HVec volX2d = dg::tensor::volume2d( metricX); 
     dg::HVec transferH2dX(volX2d);
     dg::blas1::pointwiseDot( coordsX[0], volX2d, volX2d); //R\sqrt{g}
     poloidal_average( volX2d, dvdpsip, false);
@@ -256,6 +257,13 @@ int main( int argc, char* argv[])
             &id1d[name]);
         err = nc_put_att_text( ncid_out, id1d[name], "long_name", long_name.size(),
             long_name.data());
+            
+                name = record_name + "_part_fsa";
+        long_name = record.long_name + " (Partial Flux surface average.)";
+        err = nc_def_var( ncid_out, name.data(), NC_DOUBLE, 2, dim_ids1d,
+            &id1d[name]);
+        err = nc_put_att_text( ncid_out, id1d[name], "long_name", long_name.size(),
+            long_name.data());
 
         name = record_name + "_ifs";
         long_name = record.long_name + " (wrt. vol integrated flux surface average)";
@@ -318,6 +326,8 @@ int main( int argc, char* argv[])
             std::cout << counter << " Timestep = " << i <<"/"<<steps-1 << "  time = " << time << std::endl;
             counter++;
             err = nc_put_vara_double( ncid_out, tvarID, start2d_out, count2d, &time);
+            double eta_0=0.; //NEW: Defining center of partial fsa
+            double eta_range=30.; //NEW: Defining the poloidal range of partial fsa
             for( auto& record : feltor::diagnostics2d_list)
             {
                 std::string record_name = record.name;
@@ -342,25 +352,38 @@ int main( int argc, char* argv[])
                 { 
                     err = nc_get_vara_double( ncid, dataID,
                         start2d, count2d, transferH2d.data());
-                    //2. Compute fsa and output fsa
+                        
+                    //2. Compute fsa, partial fsa and output fsa and partial fsa
+                    dg::HVec part_volX2d=volX2d; //NEW: DEFINE A PARTIAL VOLUME MATRIX TO APPLY THE CUT
                     dg::blas2::symv( grid2gridX2d, transferH2d, transferH2dX); //interpolate onto X-point grid
-                    dg::blas1::pointwiseDot(volX2d, dg::evaluate(dg::geo::Grid_cutter(M_PI, 30., 0., -0.25),gridX2d.grid()), volX2d); //cut the volume grid to do the partial flux surface integral                           
-                    dg::blas1::pointwiseDot( transferH2dX, volX2d, transferH2dX); //multiply by sqrt(g)                  
+                    dg::HVec part_transferH2dX=transferH2dX; //NEW: DEFINE A TOTAL GRID FOR THE CUTTED VOLUME TO BE APPLIED
+                    dg::blas1::pointwiseDot(part_volX2d, dg::evaluate(dg::geo::Grid_cutter(eta_0, eta_range, 0.2, -0.25),gridX2d.grid()), part_volX2d); //cut the volume grid to do the partial flux surface integral                           
+                    dg::blas1::pointwiseDot( transferH2dX, volX2d, transferH2dX); //multiply by sqrt(g)   
+                    dg::blas1::pointwiseDot( part_transferH2dX, part_volX2d, part_transferH2dX); //NEW: multiply by sqrt(g) with the partial grid  
+                    dg::HVec part_t1d=t1d; //NEW: DEFINE a new Partial 1d grid
                     poloidal_average( transferH2dX, t1d, false); //average over eta
+                    poloidal_average( part_transferH2dX, part_t1d, false); //NEW: POloidal average in the partial grid
                     dg::blas1::scal( t1d, 4*M_PI*M_PI*f0); //
+                    dg::blas1::scal( part_t1d, 2*M_PI*f0*eta_range*(M_PI/180)); // NEW: As the average is done divided by 2 pi for the whole y axis of the grid, it is neccesary to multiply by the eta_range/PI
                     dg::blas1::pointwiseDivide( t1d, dvdpsip, fsa1d );
-                    if( record_name[0] == 'j')
+                    dg::blas1::pointwiseDivide( part_t1d, dvdpsip, part_fsa1d );
+                    if( record_name[0] == 'j'){
                         dg::blas1::pointwiseDot( fsa1d, dvdpsip, fsa1d );
+                        dg::blas1::pointwiseDot( part_fsa1d, dvdpsip, part_fsa1d );
+					}
                     //3. Interpolate fsa on 2d plane : <f>
                     dg::blas2::gemv(fsa2rzmatrix, fsa1d, transferH2d); //fsa on RZ grid
                 }
                 else
                 {
                     dg::blas1::scal( fsa1d, 0.);
+                    dg::blas1::scal( part_fsa1d, 0.);
                     dg::blas1::scal( transferH2d, 0.);
                 }
                 err = nc_put_vara_double( ncid_out, id1d.at(record_name+"_fsa"),
                     start1d_out, count1d, fsa1d.data());
+                err = nc_put_vara_double( ncid_out, id1d.at(record_name+"_part_fsa"),//_at_"+std::to_string(eta_0)),
+                    start1d_out, count1d, part_fsa1d.data());
                 err = nc_put_vara_double( ncid_out, id2d.at(record_name+"_fsa2d"),
                     start2d_out, count2d, transferH2d.data() );
                 //4. Read 2d variable and compute fluctuations
