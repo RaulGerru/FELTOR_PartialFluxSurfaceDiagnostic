@@ -122,6 +122,7 @@ struct RealCartesianGridX2d: public dg::aRealGeometryX2d<real_type>
     }
 };
 
+
 /**
  * @brief three-dimensional GridX with RealCartesian metric
  */

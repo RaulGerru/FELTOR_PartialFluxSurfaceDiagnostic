@@ -33,5 +33,6 @@
 //include ds and fieldaligned
 #include "ds.h"
 
-//include Raul grid cutter
+//include Raul editions
 #include "Raul_grid_cutter.h"
+#include "Raul_convolution.h"
