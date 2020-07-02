@@ -243,39 +243,54 @@ int main( int argc, char* argv[])
 
     size_t count1d[2] = {1, g1d_out.n()*g1d_out.N()};
     size_t count2d[3] = {1, g2d_out.n()*g2d_out.Ny(), g2d_out.n()*g2d_out.Nx()};
-    //size_t count2d_X[3]= {1, gridX2d.n()*gridX2d.inner_Ny(), gridX2d.n()*gridX2d.inner_Nx()};
+    size_t count2d_X[3]= {1, gridX2d.n()*gridX2d.inner_Ny(), gridX2d.n()*gridX2d.inner_Nx()};
     size_t start2d[3] = {0, 0, 0};
     
     
+    int partial_dim_idsX[2]={0,0};
+   //diag 2: 3D, first entry with dim_ids[0], output eta, psi2, time
+
+    //diag 3: 3D, 0,0,0 AND dimensions( ncid_out, dim_idsX, &tvarID,  gridX2d.grid(), {"eta", "psi2"}): Name contains illegal character error.
+    //diag4: 3 without names. String match to name in use
+    //diag 5: with names "time", "eta" y "psi2": String match to name in use
+    //diag 6: with new tvarIDX 
+    //diag 7: partial_dim_idsX[2]={0,0};dimensions(ncid_out, partial_dim_idsX,  gridX2d.grid(), {"eta", "psi2"}); int dim_idsX[3]={dim_ids[0], partial_dim_idsX[0], partial_dim_idsX[1]};
+    // FUNCIONA, AUNQUE SE CREA OTRO CON SOLO ETA en el que estan guardados xcc e ycc.
+    //diag 8: 3 in dim_idsX of nc_def_var in xcc and ycc
+    //diag 9: with putting data inside activated:
     
-    int  dim_idsX[2]={0,0};
     //int dim_idsX[3]={dim_ids[0], dim_idsX_prime[0], dim_idsX_prime[1] };
     //int dim_test=dim_ids1d[0];
-    err = file::define_dimensions( ncid_out, dim_idsX, gridX2d.grid(), {"eta", "psi2"});//conv2: with &dim_idsX[1] and dim_idsX[0]=dim_ids[0]: DOES NOT WORK//conv 3: with &dim_idsX[0] and it=dim_ids[0]: Neither works. //conv4: 
+    err = file::define_dimensions(ncid_out, partial_dim_idsX,  gridX2d.grid(), {"eta", "psi2"});//conv2: with &dim_idsX[1] and dim_idsX[0]=dim_ids[0]: DOES NOT WORK//conv 3: with &dim_idsX[0] and it=dim_ids[0]: Neither works. //conv4: 
 	//conv4: simply dim_idsX in err and dim_idsX[3]={dim_ids[0], 0, 0}; Does not work  conv5: dim_idsX[3]={dim_ids[0], 0, 0}; and &dim_ids1d[0]: works, but psi is called psi2 y en eta, psi2 estan las variables de 1D
    //conv 6: dim_idsX[3]={dim_ids1d[0], 0, 0} and  &dim_idsX[0]: THey does not appear conv7: dim_idsX[3]={dim_ids1d[0], 0, 0} and &dim_idsX[1]: Doesn't work.
    //conv 7 again: dim_test=dim_ids1d[0] in the define  NOPE    conv8: dim_idsX[3]; a secas y define_dimensions( ncid_out, dim_idsX, &tvarIDX/&tvarID, gridX2d.grid(), {"eta", "psi2"}); NOT WORK
    //conv 8 again: dim_idsX_prime[2]={ 0, 0}; dim_idsX[3]={dim_ids[0], dim_idsX_prime[0], dim_idsX_prime[1]};dimensions( ncid_out, dim_idsX_prime,  gridX2d.grid(), {"eta", "psi2"}); NOT WORK
-   //conv 10: 
+   //conv 10: String match to name in use
+   
+   
+   int dim_idsX[3]={dim_ids[0], partial_dim_idsX[0], partial_dim_idsX[1]};
+   
    
 		long_name = "Flux surface label";
-        err = nc_put_att_text( ncid_out, dim_idsX[0], "long_name",
-            long_name.size(), long_name.data());
-        long_name = "Flux angle";
         err = nc_put_att_text( ncid_out, dim_idsX[1], "long_name",
             long_name.size(), long_name.data());
+        long_name = "Flux angle";
+        err = nc_put_att_text( ncid_out, dim_idsX[2], "long_name",
+            long_name.size(), long_name.data());
         int xccID, yccID;
-        err = nc_def_var( ncid_out, "xcc", NC_DOUBLE, 2, dim_idsX, &xccID);
-        err = nc_def_var( ncid_out, "ycc", NC_DOUBLE, 2, dim_idsX, &yccID);
+        err = nc_def_var( ncid_out, "xcc", NC_DOUBLE, 3, dim_idsX, &xccID);
+        err = nc_def_var( ncid_out, "ycc", NC_DOUBLE, 3, dim_idsX, &yccID);
 		long_name="Cartesian x-coordinate";
         err = nc_put_att_text( ncid_out, xccID, "long_name",
             long_name.size(), long_name.data());
         long_name="Cartesian y-coordinate";
         err = nc_put_att_text( ncid_out, yccID, "long_name",
             long_name.size(), long_name.data());
+        err = nc_enddef( ncid_out);
         err = nc_put_var_double( ncid_out, xccID, gridX2d.map()[0].data());
         err = nc_put_var_double( ncid_out, yccID, gridX2d.map()[1].data());
-
+	    err = nc_redef(ncid_out);
    
         /*
         int dim_idsX[2] = {0,0};
@@ -339,7 +354,7 @@ int main( int argc, char* argv[])
         if( record_name[0] == 'j'){ //NEW DEFINITION OF VARIABLE AS CONVOLUTION FOR CURRENTS (J's)
 			name = record_name + "_conv2d";
         long_name = record.long_name + " (2d values convoluted in 'small' angles.)";
-        err = nc_def_var( ncid_out, name.data(), NC_DOUBLE, 2, dim_idsX,
+        err = nc_def_var( ncid_out, name.data(), NC_DOUBLE, 3, dim_idsX,
             &id2dX[name]);
         err = nc_put_att_text( ncid_out, id2dX[name], "long_name", long_name.size(),
             long_name.data()); 			
@@ -416,6 +431,7 @@ int main( int argc, char* argv[])
                 continue; // else we duplicate the first timestep
             start2d[0] = i;
             size_t start2d_out[3] = {counter, 0,0};
+            size_t startX2d_out[3] = {counter, 0,0};
             size_t start1d_out[2] = {counter, 0};
             // read and write time
             double time=0.;
@@ -423,6 +439,7 @@ int main( int argc, char* argv[])
             std::cout << counter << " Timestep = " << i <<"/"<<steps-1 << "  time = " << time << std::endl;
             counter++;
             err = nc_put_vara_double( ncid_out, tvarID, start2d_out, count2d, &time);
+            err = nc_put_vara_double( ncid_out, tvarID, startX2d_out, count2d_X, &time);
              for( auto& record : feltor::diagnostics2d_list)
             {
                 std::string record_name = record.name;
@@ -499,10 +516,10 @@ int main( int argc, char* argv[])
                 err = nc_put_vara_double( ncid_out, id2d.at(record_name+"_fsa2d"),
                     start2d_out, count2d, transferH2d.data() ); 
                     
-               // if( record_name[0] == 'j'){ //NEW DEFINITION OF VARIABLE AS CONVOLUTION FOR CURRENTS (J's)
-			//	err = nc_put_vara_double( ncid_out, id2d.at(record_name+"_conv2d"),
-             //    start2d_out, count2d, conv_transferH2dX.data() ); 		
-				//}
+                if( record_name[0] == 'j'){ //NEW DEFINITION OF VARIABLE AS CONVOLUTION FOR CURRENTS (J's)
+				err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv2d"),
+                startX2d_out, count2d_X, conv_transferH2dX.data() ); 		
+				}
                 
                     
                     
