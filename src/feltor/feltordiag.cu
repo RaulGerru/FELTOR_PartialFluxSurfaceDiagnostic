@@ -51,7 +51,7 @@ int main( int argc, char* argv[])
     std::vector<std::string> names_input{
         "electrons", "ions", "Ue", "Ui", "potential", "induction"
     };
-
+ 
     //-----------------Create Netcdf output file with attributes----------//
     int ncid_out;
     err = nc_create(argv[argc-1],NC_NETCDF4|NC_CLOBBER, &ncid_out);
@@ -111,11 +111,11 @@ int main( int argc, char* argv[])
   
        
     ///---------------  Construct X-point grid ---------------------//
-       
-     
+         
+      
     //std::cout << "Type X-point grid resolution (n(3), Npsi(32), Neta(640)) Must be divisible by 8\n";
     std::cout << "Using default X-point grid resolution (n(3), Npsi(64), Neta(640))\n";
-    unsigned npsi = 3, Npsi = 64, Neta = 640;//set number of psivalues (NPsi % 8 == 0)
+    unsigned npsi = 3, Npsi = 64, Neta = 160;//set number of psivalues (NPsi % 8 == 0)
     //std::cin >> npsi >> Npsi >> Neta;
     std::cout << "You typed "<<npsi<<" x "<<Npsi<<" x "<<Neta<<"\n";
     std::cout << "Generate X-point flux-aligned grid!\n";
@@ -137,9 +137,10 @@ int main( int argc, char* argv[])
     std::cout << "DONE!\n";
     //Create 1d grid 
     dg::Grid1d g1d_out(psipO, psipmax, 3, Npsi, dg::DIR_NEU); //inner value is always 0
+    dg::Grid1d g1d_out_eta(gridX2d.y0(), gridX2d.y1(), 3, Neta, dg::DIR_NEU); //inner value is always 0
     const double f0 = ( gridX2d.x1() - gridX2d.x0() ) / ( psipmax - psipO );
     std::cout << "f0 is "<<f0<<"\n";
-    dg::HVec t1d = dg::evaluate( dg::zero, g1d_out), fsa1d( t1d), part_fsa1d(t1d); //	NEW: Definition of partial fsa1d
+    dg::HVec t1d = dg::evaluate( dg::zero, g1d_out), fsa1d( t1d), part_fsa1d(t1d), conv1d=dg::evaluate( dg::zero, g1d_out_eta); //	NEW: Definition of partial fsa1d
     dg::HVec transfer1d = dg::evaluate(dg::zero,g1d_out);
         
     /// ------------------- Compute 1d flux labels ---------------------//
@@ -147,6 +148,7 @@ int main( int argc, char* argv[])
     std::vector<std::tuple<std::string, dg::HVec, std::string> > map1d;
     /// Compute flux volume label
     dg::Average<dg::HVec > poloidal_average( gridX2d.grid(), dg::coo2d::y);
+    dg::Average<dg::HVec > radial_average( gridX2d.grid(), dg::coo2d::x);
     dg::HVec dvdpsip, part_dvdpsip;
     //metric and map
     dg::SparseTensor<dg::HVec> metricX = gridX2d.metric();
@@ -242,36 +244,16 @@ int main( int argc, char* argv[])
     std::map<std::string, int> id0d, id1d, id2d, id2dX;
 
     size_t count1d[2] = {1, g1d_out.n()*g1d_out.N()};
+    size_t count1d_conv[2] = {1, gridX2d.n()*gridX2d.Ny()};
     size_t count2d[3] = {1, g2d_out.n()*g2d_out.Ny(), g2d_out.n()*g2d_out.Nx()};
     size_t count2d_X[3]= {1, gridX2d.n()*gridX2d.Ny(), gridX2d.n()*gridX2d.Nx()};
     size_t start2d[3] = {0, 0, 0};
     
     
     int partial_dim_idsX[2]={0,0};
-   //diag 2: 3D, first entry with dim_ids[0], output eta, psi2, time
+    err = file::define_dimensions(ncid_out, partial_dim_idsX,  gridX2d.grid(), {"eta", "psi2"}); 
+    int dim_idsX[3]={dim_ids[0], partial_dim_idsX[0], partial_dim_idsX[1]};
 
-    //diag 3: 3D, 0,0,0 AND dimensions( ncid_out, dim_idsX, &tvarID,  gridX2d.grid(), {"eta", "psi2"}): Name contains illegal character error.
-    //diag4: 3 without names. String match to name in use
-    //diag 5: with names "time", "eta" y "psi2": String match to name in use
-    //diag 6: with new tvarIDX 
-    //diag 7: partial_dim_idsX[2]={0,0};dimensions(ncid_out, partial_dim_idsX,  gridX2d.grid(), {"eta", "psi2"}); int dim_idsX[3]={dim_ids[0], partial_dim_idsX[0], partial_dim_idsX[1]};
-    // FUNCIONA, AUNQUE SE CREA OTRO CON SOLO ETA en el que estan guardados xcc e ycc.
-    //diag 8: 3 in dim_idsX of nc_def_var in xcc and ycc
-    //diag 9: with putting data inside activated: IT DAMN WOOOOOOOOOOOOOOOOOOORKS!!!!
-    
-    //int dim_idsX[3]={dim_ids[0], dim_idsX_prime[0], dim_idsX_prime[1] };
-    //int dim_test=dim_ids1d[0];
-    err = file::define_dimensions(ncid_out, partial_dim_idsX,  gridX2d.grid(), {"eta", "psi2"});//conv2: with &dim_idsX[1] and dim_idsX[0]=dim_ids[0]: DOES NOT WORK//conv 3: with &dim_idsX[0] and it=dim_ids[0]: Neither works. //conv4: 
-	//conv4: simply dim_idsX in err and dim_idsX[3]={dim_ids[0], 0, 0}; Does not work  conv5: dim_idsX[3]={dim_ids[0], 0, 0}; and &dim_ids1d[0]: works, but psi is called psi2 y en eta, psi2 estan las variables de 1D
-   //conv 6: dim_idsX[3]={dim_ids1d[0], 0, 0} and  &dim_idsX[0]: THey does not appear conv7: dim_idsX[3]={dim_ids1d[0], 0, 0} and &dim_idsX[1]: Doesn't work.
-   //conv 7 again: dim_test=dim_ids1d[0] in the define  NOPE    conv8: dim_idsX[3]; a secas y define_dimensions( ncid_out, dim_idsX, &tvarIDX/&tvarID, gridX2d.grid(), {"eta", "psi2"}); NOT WORK
-   //conv 8 again: dim_idsX_prime[2]={ 0, 0}; dim_idsX[3]={dim_ids[0], dim_idsX_prime[0], dim_idsX_prime[1]};dimensions( ncid_out, dim_idsX_prime,  gridX2d.grid(), {"eta", "psi2"}); NOT WORK
-   //conv 10: String match to name in use transferH2dX, let's introduce part_dvdpsip
- 
-   
-   int dim_idsX[3]={dim_ids[0], partial_dim_idsX[0], partial_dim_idsX[1]};
-   //int dim_poloidal[2]={dim_ids[0], partial_dim_idsX[0]};
-   //int dim_gridX[3]={1,partial_dim_idsX[0], partial_dim_idsX[1]};
    
 		long_name = "Flux surface label";
         err = nc_put_att_text( ncid_out, dim_idsX[1], "long_name",
@@ -290,54 +272,8 @@ int main( int argc, char* argv[])
         long_name="Cartesian y-coordinate";
         err = nc_put_att_text( ncid_out, id2dX["ycc"], "long_name",
             long_name.size(), long_name.data());
-       
-        //err = nc_enddef( ncid_out);
-        //err = nc_put_var_double( ncid_out, xccID, gridX2d.map()[0].data());
-        //err = nc_put_var_double( ncid_out, yccID, gridX2d.map()[1].data());
-	    //err = nc_redef(ncid_out);
-	    
-	    //POSTCONV_1: xcc and ycc only 2 dimensions in nc_def_var
-	    //POSTCONV_2:    int dim_gridX[3]={1,partial_dim_idsX[0], partial_dim_idsX[1]}; ( ncid_out, "xcc", NC_DOUBLE, 3, dim_gridX, &xccID); hdf error
-		// POSTCONV_3: aLL OF THE UPPER PART in the time loop: String match to name in use error
-		//POST CONV 4: Only the introducing data into xcc and ycc as put_vara instead of put_var where I introduce the j's: err = nc_put_vara_double( ncid_out, xccID, startX2d_out, count2d_X, gridX2d.map()[0].data());
-        //STring match to name in use
-        //POST CONV 5: xcc and ycc defined like the conv variables with id2dX["xcc"] instead of xccID: String match to name in use porque se repetia la definicion para cada variable del 2ddiagnostic list
-        //POST CONV 6: Defined like j's but before the loop of all the diag list:
-        //THE CURRENTS MOVE AND WORK FINE (ALTHOUGH THE FUNCTION MIGHT BE WORKING WEIRD), xcc and ycc are well saved, although the values might not be what I want, and they also have the problem out of 0.
-        //POST CONV 7: ADDING THE CUTTED PARTIAL TO SEE HOW IT LOOKS. It doesn't look cutted.
-        //POST CONV 8: Changed the size_t count2d_X[3]= {1, gridX2d.n()*gridX2d.Ny(), gridX2d.n()*gridX2d.Nx()}; from inner_Nx and inner_Ny
-		// WOOOOOOOOORKS RELATIVELLY WELL!!! the conv is not done, or at least doesn't look like it, but it really looks like the toroidal average in the X_grid. THe in theory cutted value of transferH2dX is not really cutted, but we will work from here.
-        //POST CONV 9: 8 BUT WITH part_VolX2D than part_transferH2dX: This one is trully cutted.
-        // POST CONV 10: NUmber 8 but well done jajajajaj with dg::HVec part_transferH2dX in the part variable.
-         
-        
-        
-        /*
-        int dim_idsX[2] = {0,0};
-        err = file::define_dimensions( ncid, dim_idsX, gX2d->grid(), {"eta", "psi"} );
-        std::string long_name = "Flux surface label";
-        err = nc_put_att_text( ncid, dim_idsX[0], "long_name",
-            long_name.size(), long_name.data());
-        long_name = "Flux angle";
-        err = nc_put_att_text( ncid, dim_idsX[1], "long_name",
-            long_name.size(), long_name.data());
-        int xccID, yccID;
-        err = nc_def_var( ncid, "xcc", NC_DOUBLE, 2, dim_idsX, &xccID);
-        err = nc_def_var( ncid, "ycc", NC_DOUBLE, 2, dim_idsX, &yccID);
-        long_name="Cartesian x-coordinate";
-        err = nc_put_att_text( ncid, xccID, "long_name",
-            long_name.size(), long_name.data());
-        long_name="Cartesian y-coordinate";
-        err = nc_put_att_text( ncid, yccID, "long_name",
-            long_name.size(), long_name.data());
-        err = nc_enddef( ncid);
-        err = nc_put_var_double( ncid, xccID, gX2d->map()[0].data());
-        err = nc_put_var_double( ncid, yccID, gX2d->map()[1].data());
-        err = nc_redef(ncid);
-          
-    */
    
-
+ 
     //write 1d static vectors (psi, q-profile, ...) into file
     for( auto tp : map1d)
     {
@@ -379,7 +315,7 @@ int main( int argc, char* argv[])
         err = nc_put_att_text( ncid_out, id2dX[name], "long_name", long_name.size(),
             long_name.data()); 		
             
-            	name = record_name + "_convLCFS";
+            	name = record_name + "_conv1d_LCFS";
         long_name = record.long_name + " (1D Fluxes at LCFS, poloidal distribution)";
         err = nc_def_var( ncid_out, name.data(), NC_DOUBLE, 2, dim_idsX,
             &id2dX[name]);
@@ -392,10 +328,7 @@ int main( int argc, char* argv[])
             &id2dX[name]);
         err = nc_put_att_text( ncid_out, id2dX[name], "long_name", long_name.size(),
             long_name.data()); 	
- 
-            
-            
-            
+          
 		}
  
  
@@ -505,32 +438,16 @@ int main( int argc, char* argv[])
                 {  
                     err = nc_get_vara_double( ncid, dataID,
                         start2d, count2d, transferH2d.data());
-                        
-    //try 16: 2*pi*eta_range*f0 everytwhere. densities fine, but j's too small all
-	//try 17: 4*pi^2*f0 in the part_dvpsip: j's exactly as before, but densities much smaller, so it is worse
-	//try 18: change in the last multiplication from 2*pi*eta_range*f0 to 4*pi^2*f0: RIGHT FOR CURRENTS, WRONG FOR ELECTRONS
-	//TRY 19: 2*pi*eta_range*f0 everytwhere BUT WITHOUT DIVIDING FOR J'S.
-	//TRY 20: IN J CONDITION, INSTEAD OF PART_DVDPSIP, TOTAL DVDPSIP.
-	//TRY 21: part_dvdpsip without integral, simply multiplying by the factor, and everything with eta_range and part_dvdpsip: DOES NOT WORK.
-    //TRY 22: part_dvdpsip multiplied by 4*pi^2, the rest, part_dvdpsip and 2pi*eta_range       
-    //TRY 23: all that makes poloidal average, times 4*pi^2 (part_t1d and part_dvdpsip): THIS IS THE RIGHT OOOOOOOOOONE!!!!!!
-    //TRY 24: 23 with 800 Neta for increasing resolution close to X point.  
-    //TRY 25: 24 with starting with s multiplied by dvdpsip to check socurvi
-    // part_dvdpisp and part_t1d are neccesary as the change after poloidal average.
           
                     //2. Compute fsa, partial fsa and output fsa and partial fsa
                     dg::blas2::symv( grid2gridX2d, transferH2d, transferH2dX); //interpolate onto X-point grid
                     part_transferH2dX=transferH2dX; //NEW: DEFINE A TOTAL GRID FOR THE CUTTED VOLUME TO BE APPLIED 
                     conv_transferH2dX=transferH2dX; //NEW: DEFINE A TOTAL GRID FOR THE CUTTED VOLUME TO BE APPLIED 
-                    
-                     
-                    //conv_transferH2dX=dg::evaluate(dg::geo::convolution(conv_transferH2dX, conv_volX2d, 8., f0, gridX2d), gridX2d.grid()); 
-                    
+                   
     
                     dg::blas1::pointwiseDot( transferH2dX, volX2d, transferH2dX); //multiply by sqrt(g)   
                     dg::blas1::pointwiseDot( part_transferH2dX, part_volX2d, part_transferH2dX); //NEW: multiply by sqrt(g) with the partial grid  
                     dg::HVec part_t1d=t1d; //NEW: DEFINE a new Partial 1d grid
-                    //dg::HVec conv_t1d=t1d;
                     poloidal_average( transferH2dX, t1d, false); //average over eta
                     poloidal_average( part_transferH2dX, part_t1d, false); //NEW: POloidal average in the partial grid
                     dg::blas1::scal( t1d, 4*M_PI*M_PI*f0); //
@@ -540,8 +457,8 @@ int main( int argc, char* argv[])
                     if( record_name[0] == 'j'){
                         dg::blas1::pointwiseDot( fsa1d, dvdpsip, fsa1d );
                         dg::blas1::pointwiseDot( part_fsa1d, part_dvdpsip, part_fsa1d ); 
-                        //conv_transferH2dX=dg::evaluate(dg::geo::convolution(conv_transferH2dX, 8., f0, gridX2d), gridX2d.grid()); 
-                     
+                        conv_transferH2dX=dg::evaluate(dg::geo::convolution(transferH2dX, 8., f0, gridX2d), gridX2d.grid()); 
+						radial_average(conv_transferH2dX, conv1d, false);
                          
 					}
                     //3. Interpolate fsa on 2d plane : <f>
@@ -563,6 +480,9 @@ int main( int argc, char* argv[])
                 if( record_name[0] == 'j'){ //NEW DEFINITION OF VARIABLE AS CONVOLUTION FOR CURRENTS (J's)
 				err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv2d"),
                 startX2d_out, count2d_X, conv_transferH2dX.data() ); 
+                
+                err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv1d_LCFS"),
+                start1d_out, count1d_conv, conv1d.data() ); 
                 
                 err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_partX2d"),
                 startX2d_out, count2d_X, part_transferH2dX.data() ); 		
