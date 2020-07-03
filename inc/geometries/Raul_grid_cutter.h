@@ -44,7 +44,7 @@ struct Grid_cutter : public aCylindricalFunctor<Grid_cutter>
 struct Grid_cutter2 : public aCylindricalFunctor<Grid_cutter2>
 {
 
-    Grid_cutter2(double eta_0, double eta_size, const double zeta_def): eta0(eta_0), etasize(eta_size), zetadef(zeta_def){} //eta_0 is in radians and eta_size is in degrees
+    Grid_cutter2(double eta_0, double eta_size, double zeta_def): eta0(eta_0), etasize(eta_size), zetadef(zeta_def){} //eta_0 is in radians and eta_size is in degrees
     //BETTER DOCUMENTATION DESCRIPTION WHEN I CAN SEE HOW IT WOULD LOOK IN THE DOCUMENTATION
 
 
