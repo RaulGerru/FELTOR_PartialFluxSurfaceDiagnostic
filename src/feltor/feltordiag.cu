@@ -133,8 +133,8 @@ int main( int argc, char* argv[])
     std::cout << "psi max in gridX2d is "<<gridX2d.x1()<<"\n";
     std::cout << "psi min in gridX2d is "<<gridX2d.x0()<<"\n";
     std::cout << "eta max in gridX2d is "<<gridX2d.y1()<<"\n";
-    std::cout << "eta min in gridX2d is "<<gridX2d.y0()<<"\n";
-    std::cout << "DONE!\n";
+    std::cout << "eta min in gridX2d is "<<gridX2d.y0()<<"\n"; 
+    std::cout << "DONE!\n"; 
     //Create 1d grid 
     dg::Grid1d g1d_out(psipO, psipmax, 3, Npsi, dg::DIR_NEU); //inner value is always 0
     dg::Grid1d g1d_out_eta(gridX2d.y0(), gridX2d.y1(), 3, Neta, dg::DIR_NEU); //inner value is always 0
@@ -142,7 +142,7 @@ int main( int argc, char* argv[])
     std::cout << "f0 is "<<f0<<"\n";
     dg::HVec t1d = dg::evaluate( dg::zero, g1d_out), fsa1d( t1d), part_fsa1d(t1d), conv1d=dg::evaluate( dg::zero, g1d_out_eta); //	NEW: Definition of partial fsa1d
     dg::HVec transfer1d = dg::evaluate(dg::zero,g1d_out);
-        
+         
     /// ------------------- Compute 1d flux labels ---------------------//
   
     std::vector<std::tuple<std::string, dg::HVec, std::string> > map1d;
@@ -272,6 +272,18 @@ int main( int argc, char* argv[])
         long_name="Cartesian y-coordinate";
         err = nc_put_att_text( ncid_out, id2dX["ycc"], "long_name",
             long_name.size(), long_name.data());
+            
+            
+       dg::HVec eta_c=dg::evaluate( dg::cooX1d, g1d_out_eta);
+       std::string  name = "eta_coord";
+       err = nc_def_var( ncid_out, name.data(), NC_DOUBLE, 2, dim_idsX,
+            &id2dX[name]);  //dg::evaluate( dg::cooX1d, g1d_out)            
+       long_name = "Poloidal coordinate";
+		err = nc_put_att_text( ncid_out, id2dX[name], "long_name", long_name.size(),
+            long_name.data());
+        //err = nc_enddef( ncid_out);
+        //err = nc_put_var_double( ncid_out, id2dX[name], eta_c);
+		//err = nc_redef(ncid_out);
    
  
     //write 1d static vectors (psi, q-profile, ...) into file
@@ -292,7 +304,7 @@ int main( int argc, char* argv[])
         std::string record_name = record.name;
         if( record_name[0] == 'j')
             record_name[1] = 'v';
-        std::string name = record_name + "_fluc2d";
+        name = record_name + "_fluc2d";
         long_name = record.long_name + " (Fluctuations wrt fsa on phi = 0 plane.)";
         err = nc_def_var( ncid_out, name.data(), NC_DOUBLE, 3, dim_ids,
             &id2d[name]);
@@ -314,6 +326,13 @@ int main( int argc, char* argv[])
             &id2dX[name]);
         err = nc_put_att_text( ncid_out, id2dX[name], "long_name", long_name.size(),
             long_name.data()); 		
+            
+        name = record_name + "_Xgrid";
+        long_name = record.long_name + " (Toroidal average in the X grid)";
+        err = nc_def_var( ncid_out, name.data(), NC_DOUBLE, 3, dim_idsX,
+            &id2dX[name]);
+        err = nc_put_att_text( ncid_out, id2dX[name], "long_name", long_name.size(),
+            long_name.data()); 
             
             	name = record_name + "_conv1d_LCFS";
         long_name = record.long_name + " (1D Fluxes at LCFS, poloidal distribution)";
@@ -425,9 +444,9 @@ int main( int argc, char* argv[])
                 try{
                     err = nc_inq_varid(ncid, (record.name+"_ta2d").data(), &dataID);
                 } catch ( file::NC_Error& error)
-                {
+                { 
                     if(  i == 0)
-                    {
+                    { 
                         std::cerr << error.what() <<std::endl;
                         std::cerr << "Offending variable is "<<record.name+"_ta2d\n";
                         std::cerr << "Writing zeros ... \n";
@@ -457,13 +476,14 @@ int main( int argc, char* argv[])
                     if( record_name[0] == 'j'){
                         dg::blas1::pointwiseDot( fsa1d, dvdpsip, fsa1d );
                         dg::blas1::pointwiseDot( part_fsa1d, part_dvdpsip, part_fsa1d ); 
-                        conv_transferH2dX=dg::evaluate(dg::geo::convolution(transferH2dX, 8., f0, gridX2d), gridX2d.grid()); 
+                        conv_transferH2dX=dg::evaluate(dg::geo::convolution(transferH2dX, 7.5, f0, gridX2d), gridX2d.grid()); 
 						radial_average(conv_transferH2dX, conv1d, false);
+						dg::blas1::scal(conv1d, npsi*Npsi); //to make the average above as a simple way of gettig the point at LCFS
                          
 					}
                     //3. Interpolate fsa on 2d plane : <f>
                     dg::blas2::gemv(fsa2rzmatrix, fsa1d, transferH2d); //fsa on RZ grid //IT SHOULD BE WITHOUT X
-                }
+                } 
                 else
                 {
                     dg::blas1::scal( fsa1d, 0.);
@@ -481,6 +501,9 @@ int main( int argc, char* argv[])
 				err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv2d"),
                 startX2d_out, count2d_X, conv_transferH2dX.data() ); 
                 
+                err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_Xgrid"),
+                startX2d_out, count2d_X, transferH2dX.data() ); 
+                          
                 err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv1d_LCFS"),
                 start1d_out, count1d_conv, conv1d.data() ); 
                 
@@ -489,6 +512,7 @@ int main( int argc, char* argv[])
                 
                 err = nc_put_vara_double( ncid_out, id2dX["xcc"], startX2d_out, count2d_X, gridX2d.map()[0].data());
                 err = nc_put_vara_double( ncid_out, id2dX["ycc"], startX2d_out, count2d_X, gridX2d.map()[1].data());
+				err = nc_put_vara_double( ncid_out, id2dX["eta_coord"], start1d_out, count1d_conv, eta_c.data());
                 
 				}
                 
