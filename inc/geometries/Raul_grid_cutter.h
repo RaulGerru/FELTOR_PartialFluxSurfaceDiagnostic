@@ -117,20 +117,6 @@ struct Grid_cutter2 : public aCylindricalFunctor<Grid_cutter2>
     double eta0, etasize, zetadef;
 };
 
-/*
-struct PsiCutter : public aCylindricalFunctor<PsiCutter>
-{
-    PsiCutter(double Psilim): Psi_lim(Psilim){}
-    double do_compute(double Psi) const {
-        if( Psi > Psi_lim && Psi<0)
-            return 1;
-        return 0;
-    }
-    private:
-    double Psi_lim;
-};
-*/
-
 };//namespace geo
 }//namespace dg
 

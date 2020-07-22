@@ -164,7 +164,6 @@ int main( int argc, char* argv[])
     dg::blas1::scal( dvdpsip, 4.*M_PI*M_PI*f0);
     dg::blas1::scal( part_dvdpsip, 4.*M_PI*M_PI*f0);	//NEW normalization for the volume vector
 
-	   
 	 
     map1d.emplace_back( "dvdpsi", dvdpsip,
         "Derivative of flux volume with respect to flux label psi");
@@ -220,12 +219,6 @@ int main( int argc, char* argv[])
     dg::blas2::symv( fsa2rzmatrix, dvdpsip, dvdpsip2d);
     dg::HMatrix dpsi = dg::create::dx( g1d_out, dg::DIR_NEU);
  
- 
- 
- 
- 
- 
- 
     // define 2d and 1d and 0d dimensions and variables
     int dim_ids[3], tvarID;
     err = file::define_dimensions( ncid_out, dim_ids, &tvarID, g2d_out);
@@ -233,14 +226,9 @@ int main( int argc, char* argv[])
     std::string long_name = "Time at which 2d fields are written";
     err = nc_put_att_text( ncid_out, tvarID, "long_name", long_name.size(),
             long_name.data());
-
-   
-            
-            
+          
     int dim_ids1d[2] = {dim_ids[0], 0}; //time,  psi
-    err = file::define_dimension( ncid_out, &dim_ids1d[1], g1d_out, {"psi"} );
-    
-    
+    err = file::define_dimension( ncid_out, &dim_ids1d[1], g1d_out, {"psi"} ); 
     std::map<std::string, int> id0d, id1d, id2d, id2dX;
 
     size_t count1d[2] = {1, g1d_out.n()*g1d_out.N()};
@@ -253,7 +241,7 @@ int main( int argc, char* argv[])
     int partial_dim_idsX[2]={0,0};
     err = file::define_dimensions(ncid_out, partial_dim_idsX,  gridX2d.grid(), {"eta", "psi2"});  //NEW definition of the names of the new coordinates
     int dim_idsX[3]={dim_ids[0], partial_dim_idsX[0], partial_dim_idsX[1]};
-
+ 
    
 		long_name = "Flux surface label";
         err = nc_put_att_text( ncid_out, dim_idsX[1], "long_name",
@@ -281,8 +269,6 @@ int main( int argc, char* argv[])
 		err = nc_put_att_text( ncid_out, id2dX[name], "long_name", long_name.size(),
             long_name.data());
 
-   
- 
     //write 1d static vectors (psi, q-profile, ...) into file
     for( auto tp : map1d)
     {
@@ -346,9 +332,6 @@ int main( int argc, char* argv[])
             long_name.data()); 	
           
 		}
- 
- 
- 
  
         name = record_name + "_fsa"; 
         long_name = record.long_name + " (Flux surface average.)";
@@ -475,7 +458,7 @@ int main( int argc, char* argv[])
 						radial_average(conv_transferH2dX, conv1d, false); //NEW: Radial average to transform the convoluted matrix to the vector
 						dg::blas1::scal(conv1d, npsi*Npsi); //to make the radial average an average instead of an integral, as we are integrating all 0's that we don't want.
                           
-					}
+					} 
                     //3. Interpolate fsa on 2d plane : <f>
                     dg::blas2::gemv(fsa2rzmatrix, fsa1d, transferH2d); //fsa on RZ grid //IT SHOULD BE WITHOUT X
                 } 

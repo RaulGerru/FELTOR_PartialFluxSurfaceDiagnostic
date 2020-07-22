@@ -41,16 +41,16 @@ struct convolution : public aCylindricalFunctor<convolution>
     * @note How to use it? dg::evaluate(dg::geo::convolution(transferH2dX, 7.5, f0, gridX2d), gridX2d.grid());  After you have it, you will need to get the data to a simple vector, and not a matrix;
     */
 
-	convolution(HVec conv_transferH2dX, double range, const double f0, RealCurvilinearGridX2d<double> gridX2d): Conv_transferH2dX(conv_transferH2dX), Range(range), F0(f0), m_g(gridX2d) {}
+	convolution(HVec conv_transferH2dX, double range, const double f0, RealCurvilinearGridX2d<double> gridX2d): Conv_transferH2dX(conv_transferH2dX), Range(range), F0(f0), m_g(gridX2d), POloidal_average(gridX2d.grid(), dg::coo2d::y) {}
 
 		double do_compute(double zeta, double eta) const {
 		if( zeta<0 &&  zeta>-0.0009999){ //For the moment, it has this cut to only look at the LCFS. It might be interesting to go a couple of points inner so we avoid the problems at 0.
 			         
-			         //ALL of these paragraph can be defined out of the loop
-			dg::Average<dg::HVec > Poloidal_average( m_g.grid(), dg::coo2d::y);	//define poloidal average
+			         //ALL of th paragraph can be defined out of the loop
+			//dg::Average<dg::HVec > Poloidal_average( m_g.grid(), dg::coo2d::y);	//define poloidal average
 			dg::SparseTensor<dg::HVec> metricX = m_g.metric();
-			dg::HVec in_VolX2d = dg::tensor::volume2d( metricX);
-			dg::HVec in_VolX2d2 = in_VolX2d; //Definition of the variables that we are going to edit inside of the loop
+			dg::HVec In_VolX2d = dg::tensor::volume2d( metricX);
+			dg::HVec in_VolX2d2 = In_VolX2d; //Definition of the variables that we are going to edit inside of the loop
 			dg::HVec Cutted_transferH2dX=Conv_transferH2dX;
 			dg::HVec Cutted_transferH2dX2=Conv_transferH2dX;
 			dg::HVec Conv_dvdpsip, Conv_t1d, Conv_dvdpsip2, Conv_t1d2;
@@ -59,18 +59,18 @@ struct convolution : public aCylindricalFunctor<convolution>
 
 			dg::HVec cut= dg::evaluate(dg::geo::Grid_cutter2(eta, Range, zeta), m_g.grid()); //Cutting the grid with the range and the LCFS (zeta with the if initial condition)
 			dg::HVec cut2= dg::evaluate(dg::geo::Grid_cutter2(eta, 2*Range, zeta), m_g.grid()); //This is a try for the double period 
-			dg::blas1::pointwiseDot(in_VolX2d, cut, in_VolX2d); //cut the volume grid to do the partial flux surface integral                                              	
+			dg::blas1::pointwiseDot(In_VolX2d, cut, In_VolX2d); //cut the volume grid to do the partial flux surface integral                                              	
 			dg::blas1::pointwiseDot(in_VolX2d2, cut2, in_VolX2d2); //cut the volume grid to do the partial flux surface integral                                              				
-			Poloidal_average(in_VolX2d, Conv_dvdpsip, false); //Make the poloidal average of the cutted volume matrix
-			Poloidal_average(in_VolX2d2, Conv_dvdpsip2, false);
+			POloidal_average(In_VolX2d, Conv_dvdpsip, false); //Make the poloidal average of the cutted volume matrix
+			POloidal_average(in_VolX2d2, Conv_dvdpsip2, false);
 			dg::blas1::scal(Conv_dvdpsip, 4.*M_PI*M_PI*F0); //Normalized the 1D volume vectors
 			dg::blas1::scal(Conv_dvdpsip2, 4.*M_PI*M_PI*F0);
 			
-			dg::blas1::pointwiseDot( Cutted_transferH2dX, in_VolX2d, Cutted_transferH2dX); //Cut the data matrix 
+			dg::blas1::pointwiseDot( Cutted_transferH2dX, In_VolX2d, Cutted_transferH2dX); //Cut the data matrix 
 			dg::blas1::pointwiseDot( Cutted_transferH2dX2, in_VolX2d2, Cutted_transferH2dX2);
 			
-			Poloidal_average(Cutted_transferH2dX, Conv_t1d, false); //Poloidal average of the cutted data
-			Poloidal_average(Cutted_transferH2dX2, Conv_t1d2, false);
+			POloidal_average(Cutted_transferH2dX, Conv_t1d, false); //Poloidal average of the cutted data
+			POloidal_average(Cutted_transferH2dX2, Conv_t1d2, false);
 			dg::blas1::scal(Conv_t1d, 4*M_PI*M_PI*F0); //Normalize the 1D data vector
 			dg::blas1::scal(Conv_t1d2, 4*M_PI*M_PI*F0);
 			dg::blas1::pointwiseDivide(Conv_t1d, Conv_dvdpsip, Conv_t1d); //Divide the data 1D vector with the Volume to make it simple average and not integral.
@@ -98,6 +98,9 @@ struct convolution : public aCylindricalFunctor<convolution>
     double Range;
     const double F0;
     RealCurvilinearGridX2d<double> m_g;
+    Average<dg::HVec > POloidal_average;	//define poloidal average
+	//dg::SparseTensor<dg::HVec> metricX = m_g.metric();
+	//HVec In_VolX2d = dg::tensor::volume2d(m_g.metric());
 	
 };
 }
