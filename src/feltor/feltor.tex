@@ -380,7 +380,7 @@ K_{\vn\times\bhat}^\varphi &= \frac{R_0}{R^2B^2}\left(
 \label{}
 \end{align}
 
-\subsection{Flux surface averaging and safety factor}
+\subsection{Flux surface averaging, convolution, Partial flux surface average and safety factor}
 \subsubsection{Preliminary}
 Recall that the {\bf Dirac delta-function} has the property (in any dimension):
 \begin{align} \label{eq:dirac_delta}
@@ -499,6 +499,62 @@ Once we have the flux-surface averaged equation we can easily get the volume int
 + \RA{ \vec j_X\cn v}(v(\psi_p))  = \int_0^{v(\psi_p)}\RA{ \Lambda_X}\d v
 \label{eq:integral_balance}
 \end{align}
+
+\subsubsection{Convolution}
+The goal of the convolution function is to reduce the fluctuating effect obtained because of the discretization of the toroidal planes in the toroidal averaged quantities.
+
+We can define a convoluted function as:
+
+\begin{align}\label{eq:convolution_def}
+    \RA{f}_\eta (\zeta, \eta)=\oint_0^{2\pi} (\frac{f(\zeta,\eta')\sqrt{g}(\zeta,\eta')}{\oint_0^{2\pi}\sqrt{g}(\zeta,\eta '') W(\eta'-\eta'')d\eta ''})W(\eta-\eta') d\eta'=\left(\frac{ (f\sqrt{g})(\zeta, \eta')}{\sqrt{g}(\zeta, \eta'')*W(\eta',\eta'') }\right)(\zeta, \eta ') *W(\eta, \eta')
+\end{align}
+
+With the following definition of $W$ function: 
+
+\begin{align}
+    W(\eta)= \begin{cases}
+     1 \text{ for } \eta -r/2 < \eta < \eta+r/2 \\
+     0 \text{ else}
+    \end{cases}
+\end{align}
+
+Being $r$ the size of the poloidal window that we are taking as the averaged window, and $\eta$ the center of this window. 
+
+And the definition of the $*$ sign (convolution) as:
+
+\begin{align}
+    (f*g)(x)=\oint f(y)g(x-y)dy
+\end{align}\\
+With this definition $W$ does not need to be normalized.
+The following identity holds due to associative and conmutative properties of convolution:
+
+\begin{align}
+    \oint \d \eta f(\eta) [h * W](\eta) = \oint \d \eta h(\eta) [f*W](\eta)
+\end{align}
+
+for any functions $f$ and $h$. And with this, we can prove that the total flux surface average of the convoluted function is equal to the one of the original function:
+
+\begin{align}
+    \RA {\RA{f}_\eta}_\psi = \frac{\oint \RA{f}_\eta\sqrt{g}(\zeta,\eta)d\eta}{\oint \sqrt{g}(\zeta,\eta)d\eta}
+    = \frac{1}{\oint \sqrt{g}(\zeta,\eta)d\eta}\oint \left[\frac{ f\sqrt{g}}{\sqrt{g}*W } *W\right]\sqrt{g}(\zeta,\eta)d\eta
+    \nonumber\\
+     = \frac{1}{\oint \sqrt{g}(\zeta,\eta)d\eta}\oint \left[\sqrt{g}*W\right]\frac{ f\sqrt{g}}{\sqrt{g}*W }\d\eta = \frac{1}{\oint \sqrt{g}(\zeta,\eta)d\eta}\oint f\sqrt{g}d\eta = \RA{f}_\psi
+\end{align}
+
+Note: f is usually the toroidal average, defined as $\RA{f}_\varphi
+\subsubsection{Partial flux surface average}
+The goal of the partial flux surface average is to have an idea of the magnitude of different quantities depending on different poloidal sections of the torus. For this we define the partial flux surface average as follows:
+
+\begin{align}
+\RA{f}_{part \eta}=\frac{2\pi}{r}\frac{\int_{\eta-\r/2}^{\eta+r/2}f(\zeta,\eta')\sqrt{g}(\zeta,\eta') d\eta'}{\oint_0^{2\pi}\sqrt{g}(\zeta,\eta')d\eta'}=\frac{2\pi}{r}\frac{\oint_{0}^{2\pi}f(\zeta,\eta')\sqrt{g}(\zeta,\eta')W(\eta-\eta') d\eta'}{\oint_0^{2\pi}\sqrt{g}(\zeta,\eta')d\eta'}=\frac{2\pi}{r}\frac{(f\sqrt{g})*W}{\oint_0^{2\pi}\sqrt{g}(\zeta,\eta)d\eta}
+\end{align}
+
+In this expression, $r$ is defined as the size of the window of the poloidal section that you are analyzing. This definition corresponds to the capability of doing the usual average of all the sections of size r that fit in the $2\pi$ section of the torus and obtaining the total flux surface average value. As an example, if we choose $r=\pi/2$, which is 90 degrees, we will have 4 different sections that will correspond to the following:
+\begin{align}
+\RA{f}_\psi=\frac{\RA{f}_{part 0}+\RA{f}_{part \pi/2}+\RA{f}_{part \pi}+\RA{f}_{part 3\pi/2}}{4}
+\end{align}
+Being the subindex the centre of the analyzed section.
+
 
 \subsubsection{The safety factor}
 Assume that we pick a random field line and follow it (integrate it) for exactly one

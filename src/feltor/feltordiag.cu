@@ -16,7 +16,13 @@ using IHMatrix = dg::IHMatrix;
 using Geometry = dg::CylindricalGrid3d;
 #define MPI_OUT
 #include "feltordiag.h"
- 
+    
+    //GENERAL COMMENT RAUL: Everything NEW can be found with the searcher writting or "NEW",
+    // or "conv" for the convolution (as it was defined up to this point) 
+    //or "part_" for the partial flux surface average, that has a new definition, 
+    //as it is described in the feltor.pdf document.
+    
+    
 int main( int argc, char* argv[])
 {
     if( argc < 3)
@@ -84,7 +90,7 @@ int main( int argc, char* argv[])
     const double Rmax=gp.R_0+p.boxscaleRp*gp.a;
     const double Zmax=p.boxscaleZp*gp.a*gp.elongation;
      
-    double eta_0=0.; //NEW: Defining center of partial fsa
+    double eta_0=3*M_PI/2; //NEW: Defining center of partial fsa
     double eta_range=90.; //NEW: Defining the poloidal range of partial fsa
 
     dg::Grid2d   g2d_out( Rmin,Rmax, Zmin,Zmax,
@@ -100,7 +106,7 @@ int main( int argc, char* argv[])
         double damping_alpha = -(2.*p.damping_boundary+p.damping_alpha)*p.damping_alpha*psipO;
         mag = dg::geo::createModifiedSolovevField(gp, damping_psi0+damping_alpha/2.,
                 fabs(p.damping_alpha/2.), ((psipO>0)-(psipO<0)));
-    }
+    } 
     dg::HVec psipog2d = dg::evaluate( mag.psip(), g2d_out);
     // Construct weights and temporaries
 
@@ -108,14 +114,14 @@ int main( int argc, char* argv[])
     dg::HVec part_transferH2dX; //NEW for partial fsa
     dg::HVec t2d_mp = dg::evaluate(dg::zero,g2d_out);
     dg::HVec t2d_pol_conv = dg::evaluate(dg::zero,g2d_out); //NEW for convolution
-  
+   
        
     ///---------------  Construct X-point grid ---------------------//
          
-      
+       
     //std::cout << "Type X-point grid resolution (n(3), Npsi(32), Neta(640)) Must be divisible by 8\n";
     std::cout << "Using default X-point grid resolution (n(3), Npsi(64), Neta(640))\n";
-    unsigned npsi = 3, Npsi = 64, Neta = 160;//set number of psivalues (NPsi % 8 == 0)
+    unsigned npsi = 3, Npsi = 64, Neta =40;//set number of psivalues (NPsi % 8 == 0)
     //std::cin >> npsi >> Npsi >> Neta;
     std::cout << "You typed "<<npsi<<" x "<<Npsi<<" x "<<Neta<<"\n";
     std::cout << "Generate X-point flux-aligned grid!\n";
@@ -142,7 +148,7 @@ int main( int argc, char* argv[])
     std::cout << "f0 is "<<f0<<"\n";
     dg::HVec t1d = dg::evaluate( dg::zero, g1d_out), fsa1d( t1d), part_fsa1d(t1d), conv1d=dg::evaluate( dg::zero, g1d_out_eta); //	NEW: Definition of partial fsa1d and convolution variables
     dg::HVec transfer1d = dg::evaluate(dg::zero,g1d_out);
-         
+           
     /// ------------------- Compute 1d flux labels ---------------------//
   
     std::vector<std::tuple<std::string, dg::HVec, std::string> > map1d;
@@ -156,15 +162,20 @@ int main( int argc, char* argv[])
     dg::HVec volX2d = dg::tensor::volume2d( metricX); 
     dg::HVec transferH2dX(volX2d); //NEW definitions
     dg::HVec conv_transferH2dX=transferH2dX; //NEW definitions
+    dg::HVec conv_def_transferH2dX;
     dg::blas1::pointwiseDot( coordsX[0], volX2d, volX2d); //R\sqrt{g}
-    dg::HVec part_volX2d=volX2d, conv_volX2d=volX2d; //NEW: DEFINE A PARTIAL VOLUME MATRIX TO APPLY THE CUT   
+    dg::HVec part_volX2d=volX2d, conv_volX2d; //NEW: DEFINE A PARTIAL VOLUME MATRIX TO APPLY THE CUT   
+	double conv_window=7.5;
 	dg::blas1::pointwiseDot(part_volX2d, dg::evaluate(dg::geo::Grid_cutter(eta_0, eta_range), gridX2d.grid()), part_volX2d); //cut the volume grid to do the partial flux surface integral                                              
     poloidal_average( volX2d,dvdpsip, false);  
-    poloidal_average( part_volX2d, part_dvdpsip, false);    ////NEW poloidal average only in the cutted volume matrix for the volume vector.
+    poloidal_average( part_volX2d, part_dvdpsip, false);    ////NEW poloidal average only in the cutted volume matrix for the volume vector.    
     dg::blas1::scal( dvdpsip, 4.*M_PI*M_PI*f0);
     dg::blas1::scal( part_dvdpsip, 4.*M_PI*M_PI*f0);	//NEW normalization for the volume vector
-
-	 
+	std::cout << "Starting volume convolution \n";
+	dg::geo::Convolution_def conv(conv_window, f0, gridX2d, Neta);
+	conv_volX2d=conv.convoluted_grid();
+    std::cout << "Volume convolution finished \n";
+	  
     map1d.emplace_back( "dvdpsi", dvdpsip,
         "Derivative of flux volume with respect to flux label psi");
     map1d.emplace_back( "dvdpsi_part_at_"+std::to_string(eta_0)+"_"+std::to_string(eta_range), part_dvdpsip,
@@ -188,7 +199,7 @@ int main( int argc, char* argv[])
         "Alternative flux label rho = 1-psi/psimin");
     dg::blas1::transform( rho, rho, dg::SQRT<double>());
     map1d.emplace_back("rho_p", rho,
-        "Alternative flux label rho_p = sqrt(1-psi/psimin)");
+        "Alternative flux label rho_p = sqrt(1-psi/psimin)"); 
     dg::geo::SafetyFactor qprof( mag);
     dg::HVec qprofile = dg::evaluate( qprof, g1d_out);
     map1d.emplace_back("q-profile", qprofile,
@@ -258,6 +269,16 @@ int main( int argc, char* argv[])
         err = nc_def_var( ncid_out, "ycc", NC_DOUBLE, 3, dim_idsX, &id2dX["ycc"]);
         long_name="Cartesian y-coordinate"; //NEW variable for the transformation from X-grid to the Z, R grid
         err = nc_put_att_text( ncid_out, id2dX["ycc"], "long_name",
+            long_name.size(), long_name.data());
+            
+        err = nc_def_var( ncid_out, "volX2d_sqrt(g)", NC_DOUBLE, 3, dim_idsX, &id2dX["volX2d_sqrt(g)"]);
+		long_name="Volume matrix_sqrt(g)";
+        err = nc_put_att_text( ncid_out, id2dX["volX2d_sqrt(g)"], "long_name",
+            long_name.size(), long_name.data());
+            
+         err = nc_def_var( ncid_out, "conv_volX2d_sqrt(g)", NC_DOUBLE, 3, dim_idsX, &id2dX["conv_volX2d_sqrt(g)"]);
+		long_name="Convoluted_Volume matrix_sqrt(g)";
+        err = nc_put_att_text( ncid_out, id2dX["conv_volX2d_sqrt(g)"], "long_name",
             long_name.size(), long_name.data());
             
             
@@ -373,7 +394,7 @@ int main( int argc, char* argv[])
             &id0d[name]);
         err = nc_put_att_text( ncid_out, id0d[name], "long_name", long_name.size(),
             long_name.data());
-    }
+    } 
     /////////////////////////////////////////////////////////////////////////
     size_t counter = 0;
     int ncid;
@@ -449,15 +470,18 @@ int main( int argc, char* argv[])
                     poloidal_average( part_transferH2dX, part_t1d, false); //NEW: POloidal average in the partial grid
                     dg::blas1::scal( t1d, 4*M_PI*M_PI*f0); //
                     dg::blas1::scal( part_t1d, 4*M_PI*M_PI*f0); // NEW: As the average is done divided by 2 pi for the whole y axis of the grid, it is neccesary to multiply by the eta_range/PI.
+                    dg::blas1::scal(part_t1d, 360/eta_range);
                     dg::blas1::pointwiseDivide( t1d, dvdpsip, fsa1d );
-                    dg::blas1::pointwiseDivide( part_t1d, part_dvdpsip, part_fsa1d ); 
+                    dg::blas1::pointwiseDivide( part_t1d, dvdpsip, part_fsa1d ); 
                     if( record_name[0] == 'j'){
                         dg::blas1::pointwiseDot( fsa1d, dvdpsip, fsa1d );
-                        dg::blas1::pointwiseDot( part_fsa1d, part_dvdpsip, part_fsa1d ); 
-                        conv_transferH2dX=dg::evaluate(dg::geo::convolution(transferH2dX, 7.5, f0, gridX2d), gridX2d.grid()); //NEW convolution variable
-						radial_average(conv_transferH2dX, conv1d, false); //NEW: Radial average to transform the convoluted matrix to the vector
-						dg::blas1::scal(conv1d, npsi*Npsi); //to make the radial average an average instead of an integral, as we are integrating all 0's that we don't want.
-                          
+                        dg::blas1::pointwiseDot( part_fsa1d, dvdpsip, part_fsa1d ); 
+                        dg::blas1::pointwiseDivide(transferH2dX, conv_volX2d, conv_transferH2dX);
+                        
+                        //conv_def_transferH2dX=dg::evaluate(dg::geo::convolution2(conv_transferH2dX, conv_window, f0, gridX2d), gridX2d.grid()); //NEW convolution variable
+						//radial_average(conv_transferH2dX, conv1d, false); //NEW: Radial average to transform the convoluted matrix to the vector
+						//dg::blas1::scal(conv1d, npsi*Npsi); //to make the radial average an average instead of an integral, as we are integrating all 0's that we don't want.
+                           
 					} 
                     //3. Interpolate fsa on 2d plane : <f>
                     dg::blas2::gemv(fsa2rzmatrix, fsa1d, transferH2d); //fsa on RZ grid //IT SHOULD BE WITHOUT X
@@ -476,20 +500,22 @@ int main( int argc, char* argv[])
                     start2d_out, count2d, transferH2d.data() ); 
                     
                 if( record_name[0] == 'j'){ //NEW DEFINITION OF VARIABLE AS CONVOLUTION FOR CURRENTS (J's)
-				err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv2d"),
-                startX2d_out, count2d_X, conv_transferH2dX.data() ); //NEW Saving the convoluted matrix
+				//err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv2d"),
+                //startX2d_out, count2d_X, conv_transferH2dX.data() ); //NEW Saving the convoluted matrix
                 
-                err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_Xgrid"),
-                startX2d_out, count2d_X, transferH2dX.data() );  //NEW saving the data on the X-grid 
+                //err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_Xgrid"),
+                //startX2d_out, count2d_X, transferH2dX.data() );  //NEW saving the data on the X-grid 
                           
-                err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv1d_LCFS"),
-                start1d_out, count1d_conv, conv1d.data() );  //NEW saving the 1d convoluted vector
+                //err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_conv1d_LCFS"),
+                //start1d_out, count1d_conv, conv1d.data() );  //NEW saving the 1d convoluted vector
                 
-                err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_partX2d"),
-                startX2d_out, count2d_X, part_transferH2dX.data() ); 		 //NEW saving the Cutted grid for partial fsa in the X-grid 
+                //err = nc_put_vara_double( ncid_out, id2dX.at(record_name+"_partX2d"),
+                //startX2d_out, count2d_X, part_transferH2dX.data() ); 		 //NEW saving the Cutted grid for partial fsa in the X-grid 
                 
                 err = nc_put_vara_double( ncid_out, id2dX["xcc"], startX2d_out, count2d_X, gridX2d.map()[0].data());//NEW SAving the maps and metrics of the new coordinates 
                 err = nc_put_vara_double( ncid_out, id2dX["ycc"], startX2d_out, count2d_X, gridX2d.map()[1].data());
+                err = nc_put_vara_double( ncid_out, id2dX["volX2d_sqrt(g)"], startX2d_out, count2d_X, volX2d.data());
+				err = nc_put_vara_double( ncid_out, id2dX["conv_volX2d_sqrt(g)"], startX2d_out, count2d_X, conv_volX2d.data());
 				err = nc_put_vara_double( ncid_out, id2dX["eta_coord"], start1d_out, count1d_conv, eta_c.data());
                 
 				}
