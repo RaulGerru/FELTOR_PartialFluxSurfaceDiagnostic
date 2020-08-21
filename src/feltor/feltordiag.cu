@@ -209,7 +209,7 @@ int main( int argc, char* argv[])
    
     double eta_0=3*M_PI/2; //NEW: Defining center of partial fsa
     double eta_range=90.; //NEW: Defining the poloidal range of partial fsa 
-	double conv_window=1; // NEW: Window for the convolution function    
+	double conv_window=7.5; // NEW: Window for the convolution function    
     double radial_cut_point=0.; //NEW: Radial position where we will like to do the cut of the 1D convolution
        
     //NEW DATA AND GRID DEFINITIONS    
@@ -474,7 +474,6 @@ int main( int argc, char* argv[])
                     
                     dg::blas2::symv( grid2gridX2d, transferH2d, transferH2dX); //interpolate onto X-point grid. a.k.a Define the data in the X-grid                   
                     part_transferH2dX=transferH2dX; //NEW: Define the data matrices that we are going to edit for the partial fsa and the convolution
-                    preconv_transferH2dX=transferH2dX;
                     
                     //ORIGINAL FSA
                     dg::blas1::pointwiseDot( transferH2dX, volX2d, transferH2dX); //multiply by sqrt(g)   
@@ -494,7 +493,7 @@ int main( int argc, char* argv[])
                         dg::blas1::pointwiseDot( part_fsa1d, dvdpsip, part_fsa1d ); 
 
 						//NEW: Define the function to be convoluted dividing the data (already multiplied by sqrt(g)) by the convoluted volume
-                        dg::blas1::pointwiseDivide( preconv_transferH2dX, conv_volX2d, preconv_transferH2dX);
+                        dg::blas1::pointwiseDivide(transferH2dX, conv_volX2d, preconv_transferH2dX);
 
                         //NEW: Make the convolution
                         conv_def_transferH2dX=conv.convolute(preconv_transferH2dX);
@@ -503,10 +502,10 @@ int main( int argc, char* argv[])
                         dg::blas1::pointwiseDot( conv_def_transferH2dX, volX2d, post_conv_def_transferH2dX);   
 						poloidal_average(post_conv_def_transferH2dX, conv_fsa, false);
 						dg::blas1::scal( conv_fsa, 4*M_PI*M_PI*f0);
-						dg::blas1::pointwiseDivide( conv_fsa, dvdpsip, conv_fsa);
                     
 						//NEW: We obtain a radial cut of the convoluted data
 						conv_LCFS_1d=conv.radial_cut(conv_def_transferH2dX, radial_cut_point);
+						dg::blas1::pointwiseDivide(transferH2dX, volX2d, transferH2dX);
 						//NEW: We obtain a radial cut of the original data
 						LCFS_1d=conv.radial_cut(transferH2dX, radial_cut_point);
                                
@@ -576,7 +575,7 @@ int main( int argc, char* argv[])
                     err = nc_get_vara_double( ncid, dataID, start2d, count2d,
                         t2d_mp.data());  //HERE t2d_mp IS THE DATA 
                     if( record_name[0] == 'j')
-                        dg::blas1::pointwiseDot( t2d_mp, dvdpsip2d, t2d_mp ); //HERE WE SIMPLY MULTIPLY BY THE DVDPSIP2D
+                        dg::blas1::pointwiseDot( t2d_mp, dvdpsip2d, t2d_mp ); //HERE WE SIMPLY MULTIPLY BY THE DVDPSIP2D: WHY DVDPSIP2D AND NOT VOLX2d????
                     dg::blas1::axpby( 1.0, t2d_mp, -1.0, transferH2d); //HERE WE SUBSTRACT THE AVERAGE TO GET THE FLUCTUATIONS AND SAVE IT IN TRANSFER H2D
                     err = nc_put_vara_double( ncid_out, id2d.at(record_name+"_fluc2d"),
                         start2d_out, count2d, transferH2d.data() );
