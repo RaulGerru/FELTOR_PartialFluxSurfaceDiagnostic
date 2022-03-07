@@ -11,7 +11,7 @@ INCLUDE+= -I../../inc   # other project libraries
 
 all: feltor feltor_hpc feltor_mpi manufactured manufactured_perp manufactured_para feltordiag interpolate_in_3d
 
-feltordiag: feltordiag.cu feltordiag.h
+feltordiag: feltordiag.cu feltordiag_conserv.h
 	$(CC) $(OPT) $(CFLAGS) $< -o $@ $(INCLUDE) $(LIBS) $(JSONLIB) -g $(VERSION_FLAGS)
 
 interpolate_in_3d: interpolate_in_3d.cu feltordiag.h
@@ -20,10 +20,10 @@ interpolate_in_3d: interpolate_in_3d.cu feltordiag.h
 feltor: feltor.cu feltor.h init.h parameters.h init_from_file.h
 	$(CC) $(OPT) $(CFLAGS) $< -o $@ $(INCLUDE) $(GLFLAGS) $(LIBS) $(JSONLIB) -g -DDG_BENCHMARK $(VERSION_FLAGS)
 
-feltor_hpc: feltor.cu feltordiag.h feltor.h init.h parameters.h init_from_file.h
+feltor_hpc: feltor.cu feltordiag_conserv.h feltor.h init.h parameters.h init_from_file.h
 	$(CC) -g $(OPT) $(CFLAGS) $< -o $@ $(INCLUDE) $(LIBS) $(JSONLIB) -DDG_BENCHMARK -DWITHOUT_GLFW $(VERSION_FLAGS)
 
-feltor_mpi: feltor.cu feltordiag.h feltor.h init.h parameters.h init_from_file.h
+feltor_mpi: feltor.cu feltordiag_conserv.h feltor.h init.h parameters.h init_from_file.h
 	$(MPICC) $(OPT) $(MPICFLAGS) $< -o $@ $(INCLUDE) $(LIBS) $(JSONLIB) -DWITH_MPI -DDG_BENCHMARK -DWITHOUT_GLFW $(VERSION_FLAGS)
 
 manufactured: manufactured.cu manufactured.h feltor.h

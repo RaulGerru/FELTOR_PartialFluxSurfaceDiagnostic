@@ -17,7 +17,7 @@
 #include "dg/file/file.h"
 #include "feltor.h"
 #include "init.h"
-#include "feltordiag.h"
+#include "feltordiag_conserv.h"
 #include "init_from_file.h"
 
 #ifdef WITH_MPI
@@ -194,12 +194,13 @@ int main( int argc, char* argv[])
     /// /////////////The initial field//////////////////////////////////////////
     double time = 0.;
     std::array<std::array<dg::x::DVec,2>,2> y0;
+    dg::geo::Nablas<dg::x::CylindricalGrid3d, dg::x::DVec, dg::x::DMatrix> nabla(grid, p, mag);
     std::array<dg::x::DVec, 3> gradPsip;
     gradPsip[0] =  dg::evaluate( mag.psipR(), grid);
     gradPsip[1] =  dg::evaluate( mag.psipZ(), grid);
     gradPsip[2] =  dg::evaluate( dg::zero, grid); //zero
     feltor::Variables var{
-        feltor, y0, p, mag, gradPsip, gradPsip,
+        feltor, y0, p, mag, nabla, gradPsip, gradPsip, gradPsip, gradPsip,
         dg::construct<dg::x::DVec>( dg::pullback( dg::geo::Hoo(mag),grid)),
         0., // duration
         0 // nfailed
