@@ -367,9 +367,11 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
                     js["density"]["ntilde"]);
             dg::x::HVec profile = detail::make_profile( grid, mag,
                     js["density"]["profile"], nbg);
-            dg::x::HVec damping = detail::make_damping( grid, unmod_mag,
+            dg::x::HVec damping2 = detail::make_damping( grid, unmod_mag,
                     js["density"]["damping"]);
-            dg::x::HVec density = profile;
+            dg::x::HVec damping=damping2;        
+            dg::blas1::nanto0(damping2, damping);
+            dg::x::HVec density = damping;
             dg::blas1::subroutine( [nbg]( double profile, double ntilde, double
                         damping, double& density)
                     { density = (profile+ntilde-nbg)*damping+nbg;},
