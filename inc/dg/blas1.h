@@ -632,6 +632,14 @@ inline void subroutine( Subroutine f, ContainerType&& x, ContainerTypes&&... xs)
     dg::blas1::detail::doSubroutine(tensor_category(), f, std::forward<ContainerType>(x), std::forward<ContainerTypes>(xs)...);
 }
 
+//NEW FUNCTION TO TRANSFORM NANS AND INF TO 0
+template< class ContainerType>
+inline void nanto0( ContainerType& x, ContainerType& y)
+{  dg::blas1::transform(x, y, dg::NANINFTOZERO<double>());
+   return;
+}
+
+        
 ///@}
 }//namespace blas1
 
