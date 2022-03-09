@@ -479,7 +479,9 @@ dg::x::HVec source_profiles(
         fixed_profile = true;
         double nbg = 0;
         ne_profile = detail::make_profile(grid, mag, js["profile"], nbg);
-        source = detail::make_damping( grid, unmod_mag, js["damping"]);
+        source2 = detail::make_damping( grid, unmod_mag, js["damping"]);
+        dg::x::HVec source=source2;        
+        dg::blas1::nanto0(source2, source);
     }
     else if("influx" == type)
     {
@@ -487,7 +489,9 @@ dg::x::HVec source_profiles(
         double nbg = 0.;
         source  = detail::make_ntilde( feltor, grid, mag, js["ntilde"]);
         ne_profile = detail::make_profile( grid, mag, js["profile"], nbg);
-        dg::x::HVec damping = detail::make_damping( grid, unmod_mag, js["damping"]);
+        dg::x::HVec damping2 = detail::make_damping( grid, unmod_mag, js["damping"]);
+        dg::x::HVec damping=damping2;        
+        dg::blas1::nanto0(damping2, damping);
         dg::blas1::subroutine( [nbg]( double& profile, double& ntilde, double
                     damping) {
                     ntilde  = (profile+ntilde-nbg)*damping+nbg;
