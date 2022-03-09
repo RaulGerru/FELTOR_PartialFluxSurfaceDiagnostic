@@ -394,4 +394,30 @@ auto compose(UnaryOp f0, Functors... fs) {
 }
 ///@}
 
+/**
+ * @brief \f$ f(x) = \mathrm{!std::isfinite(x)}\f$
+ *
+ * return 0 if \c x is \c NaN or \c Inf
+@code
+//Check if a vector contains Inf or NaN
+thrust::device_vector<double> x( 100);
+bool hasnan = dg::blas1::reduce( x, false, thrust::logical_or<bool>(),
+    dg::ISNFINITE<double>());
+std::cout << "x contains Inf or NaN "<<std::boolalpha<<hasnan<<"\n";
+@endcode
+ */
+template <class T>
+struct NANINFTOZERO
+{
+#ifdef __CUDACC__
+    DG_DEVICE T operator()(T x){ if (!isfinite(x)) return 0.;
+    else return x;}
+#else
+    T operator()( T x){ if (!std::isfinite(x)) return 0.;
+    else return x;} //Locally we work here. It is not finding the infinites
+#endif
+};
+
+
+
 }//namespace dg
