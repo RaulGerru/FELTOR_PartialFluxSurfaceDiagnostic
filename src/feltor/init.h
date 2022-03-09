@@ -479,8 +479,8 @@ dg::x::HVec source_profiles(
         fixed_profile = true;
         double nbg = 0;
         ne_profile = detail::make_profile(grid, mag, js["profile"], nbg);
-        source2 = detail::make_damping( grid, unmod_mag, js["damping"]);
-        dg::x::HVec source=source2;        
+        dg::x::HVec source2=source; 
+        source2 = detail::make_damping( grid, unmod_mag, js["damping"]);  
         dg::blas1::nanto0(source2, source);
     }
     else if("influx" == type)
