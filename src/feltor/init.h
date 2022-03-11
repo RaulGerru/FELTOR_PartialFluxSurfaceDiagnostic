@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dg/file/json_utilities.h"
+
 #include "init_from_file.h"
 
 namespace feltor
@@ -325,6 +326,11 @@ dg::x::HVec make_ntilde(
     return ntilde;
 }
 
+
+
+
+
+
 }//namespace detail
 
 /* The purpose of this file is to provide an interface for custom initial conditions and
@@ -409,19 +415,22 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
         else if( "ui" == utype )
         {
             std::string uprofile = js["velocity"].get("profile", "linear_cs").asString();
-            if( !(uprofile == "linear_cs"))
+            if( !(uprofile == "linear_cs") && !(uprofile =="PS"))
                 throw dg::Error(dg::Message(_ping_)<<"Warning! Unkown velocity profile '"<<uprofile<<"'! I don't know what to do! I exit!\n");
-
+	     //if (uprofile =="linear_cs")
+	     //{
             dg::x::HVec coord2d = dg::pullback( sheath_coordinate,
                     *grid.perp_grid());
-            dg::x::HVec ui;
-            dg::assign3dfrom2d( coord2d, ui, grid);
-            dg::blas1::scal( ui, sqrt( 1.0+p.tau[1]));
-            dg::assign( ui, y0[1][1]); // Wi = Ui
-
+            dg::x::HVec ui_SOL, ue_SOL;
+            dg::assign3dfrom2d( coord2d, ui_SOL, grid);
+            dg::assign( coord2d, y0[1][1]);
+            dg::blas1::scal( ui_SOL, sqrt( 1.0+p.tau[1]));
             std::string atype = js["aparallel"].get("type", "zero").asString();
             DG_RANK0 std::cout << "# Initialize aparallel with "<<atype << std::endl;
             // ue = Ui
+            if (uprofile =="linear_cs")
+            {
+            dg::assign( ui_SOL, y0[1][1]); // Wi = Ui
             if( atype == "zero")
             {
                 dg::blas1::subroutine( [] DG_DEVICE( double ne, double ni,
@@ -429,15 +438,119 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
                         { ue = ni*ui/ne;}, y0[0][0], y0[0][1],
                         y0[1][0], y0[1][1]);
             }
+
+            dg::assign(y0[1][0], ue_SOL); //We =Ue =Ui
+            }
+            
             else if( !(atype == "zero"))
             {
                 throw dg::Error(dg::Message(_ping_)<<"Warning! aparallel type '"<<atype<<"' not recognized. I have beta = "<<p.beta<<" ! I don't know what to do! I exit!\n");
             }
 
-        }
+	 if(uprofile == "PS")
+            {        
+            if( atype == "zero")
+            {
+                dg::blas1::subroutine( [] DG_DEVICE( double ne, double ni,
+                            double& ue, double ui)
+                        { ue = ni*ui/ne;}, y0[0][0], y0[0][1],
+                        y0[1][0], y0[1][1]);
+            }
+
+             dg::assign(y0[1][0], ue_SOL); //We =Ue =Ui
+             double factor=0.9; //FUTURE INPUT
+             double A=mag.params().a();
+             double C1=-(1-A)/mag.R0();
+             double C2=-A/mag.R0();
+             dg::x::HVec density;
+         
+             dg::assign(y0[0][0], density);
+             dg::x::HVec psip=dg::pullback( mag.psip(), grid);
+
+             dg::x::HVec I=dg::evaluate( dg::one, grid);
+             dg::blas1::axpby(-2*A/mag.R0(), psip, 1.0, I);//dg::pullback(mag.ipol(), grid);
+             dg::blas1::transform( I, I, dg::SQRT<double>());
+             
+             dg::x::HVec B = dg::pullback( dg::geo::Bmodule(mag), grid);
+               
+             dg::x::HVec J_par_1=dg::construct<dg::x::DVec>(
+             dg::evaluate( dg::zero, grid)), J_par=J_par_1;
+             dg::blas1::pointwiseDivide(I, B, J_par_1);
+             //dg::assign( J_par_1, y0[1][0]);
+             dg::blas1::pointwiseDivide(B, I, J_par);
+             //dg::assign( J_par_2, y0[1][1]);
+             dg::x::HVec ue_CORE=J_par_1;
+             dg::blas1::axpby(C1, J_par_1, C2, J_par); 
+             dg::assign(J_par, ue_CORE);
+             //dg::blas1::pointwiseDivide(J_par_2, density, ue_CORE);
+             dg::x::HVec ui_CORE=ue_CORE, ue_final=ue_CORE, ui_final=ue_CORE;
+             dg::blas1::scal(ue_CORE, factor);
+	     dg::blas1::scal(ui_CORE, (1-factor));
+	     
+	     
+	     double alpha_ue_core_damping=0.01; //FUTURE INPUTS
+	     double boundary_ue_core_damping=1;  //FUTURE INPUTS
+	     dg::x::HVec xpoint = detail::xpoint_damping( grid, mag);
+	     dg::x::HVec damping_CORE = dg::evaluate( dg::one, grid), damping_pre=damping_CORE, damping=damping_CORE;
+	     
+             damping_CORE = dg::pullback(dg::compose(dg::PolynomialHeaviside(boundary_ue_core_damping-alpha_ue_core_damping/2., alpha_ue_core_damping/2., -1), dg::geo::RhoP(mag)), grid);
+	     
+	     
+        //dg::blas1::evaluate( damping1, dg::equals(), []DG_DEVICE(double x, double y)
+        //        { return x+y-x*y;}, xpoint, damping1);
+        // Set Intersection
+             dg::blas1::pointwiseDot( damping_CORE, xpoint, damping_pre);
+             dg::blas1::nanto0(damping_pre, damping);				
+             //dg::blas1::pointwiseDot(ue_CORE, damping, ue_final);
+             //dg::blas1::pointwiseDot(ui_CORE, damping, ui_final);
+             dg::blas1::axpby(1.0, ue_SOL, 1.0, ue_final);
+             dg::blas1::axpby(1.0, ui_SOL, 1.0, ui_final);                          
+             dg::assign( ue_final, y0[1][0]);
+             dg::assign( ui_final, y0[1][1]);
+             
+             
+             
+             
+             
+             //-----------------------------------------
+            //COMPUTATION OF INVERSE LAPLACE FOR INITIAL A_1,|| DEFINED BY PS Current
+             dg::Elliptic<dg::CylindricalGrid3d, dg::DMatrix, dg::DVec> laplaceM( grid);
+             const dg::DVec vol2d = dg::create::volume( grid);     //x=A_par
+             unsigned max_iter = 15;//n*n*Nx*Ny;
+             const double eps = 1e-4; //PRECISION OF PROCESS: BY HAND. FUTURE INPUT
+             dg::x::HVec A_par=dg::evaluate( dg::zero, grid);
+             dg::PCG<dg::DVec > pcg( A_par, max_iter);
+	      auto inverse_op = [&] ( const auto& y, auto& x)
+		{
+   		 pcg.solve( laplaceM, x, y, 1., vol2d, eps);
+		};
+             dg::blas2::symv( inverse_op, J_par, A_par);
+
+             //------------------------------
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+             
+           } //PS BRACKET
+     
+	 
+        } //ui utype
         else
             throw dg::Error(dg::Message()<< "Invalid velocity initial condition "<<utype<<"\n");
-    }
+    } //fields
+    
+  
+    
+    
     else if( "restart" == type)
     {
         std::string file = js["init"]["file"].asString();
