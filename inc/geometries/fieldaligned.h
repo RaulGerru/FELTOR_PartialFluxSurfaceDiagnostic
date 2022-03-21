@@ -280,18 +280,21 @@ struct WallFieldlineCoordinate : public aCylindricalFunctor<WallFieldlineCoordin
     }
     double do_compute( double R, double Z) const
     {
-        double phiP = m_deltaPhi, phiM = -m_deltaPhi;
+        double phiP = m_deltaPhi, phiM = -m_deltaPhi; //deltaPhi=Max_Angle
         std::array<double,3> coords{ R, Z, 0}, coordsP(coords), coordsM(coords);
         // determine sign
-        m_cyl_field( 0., coords, coordsP);
+        m_cyl_field( 0., coords, coordsP); //m_cyl_field=sheath_walls
         double sign = coordsP[2] > 0 ? +1. : -1.;
         try{
             dg::AdaptiveTimeloop<std::array<double,3>> odeint(
                     dg::Adaptive<dg::ERKStep<std::array<double,3>>>(
                         "Dormand-Prince-7-4-5", coords), m_cyl_field,
                     dg::pid_control, dg::fast_l2norm, m_eps, 1e-10);
-            odeint.integrate( 0., coords, phiP, coordsP);
-            odeint.integrate( 0., coords, phiM, coordsM);
+            odeint.integrate_in_domain( 0., coords, phiP, coordsP, 0.,
+                    m_domain, m_eps);
+            odeint.set_dt(0);
+            odeint.integrate_in_domain( 0., coords, phiM, coordsM, 0.,
+                    m_domain, m_eps);
         }catch (std::exception& e)
         {
             // if not possible the distance is large

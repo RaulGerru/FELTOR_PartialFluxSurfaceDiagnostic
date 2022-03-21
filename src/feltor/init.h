@@ -473,7 +473,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              
              dg::x::HVec B = dg::pullback( dg::geo::Bmodule(mag), grid);
                
-             dg::x::HVec J_par_1=dg::construct<dg::x::DVec>(
+             dg::x::HVec J_par_1=dg::construct<dg::x::HVec>(
              dg::evaluate( dg::zero, grid)), J_par=J_par_1;
              dg::blas1::pointwiseDivide(I, B, J_par_1);
              //dg::assign( J_par_1, y0[1][0]);
@@ -505,7 +505,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              //dg::blas1::pointwiseDot(ui_CORE, damping, ui_final);
              dg::blas1::axpby(1.0, ue_SOL, 1.0, ue_final);
              dg::blas1::axpby(1.0, ui_SOL, 1.0, ui_final);                          
-             dg::assign( ue_final, y0[1][0]);
+             //dg::assign( ue_final, y0[1][0]);
              dg::assign( ui_final, y0[1][1]);
              
              
@@ -514,21 +514,23 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              
              //-----------------------------------------
             //COMPUTATION OF INVERSE LAPLACE FOR INITIAL A_1,|| DEFINED BY PS Current
-             dg::Elliptic<dg::CylindricalGrid3d, dg::DMatrix, dg::DVec> laplaceM( grid);
-             const dg::DVec vol2d = dg::create::volume( grid);     //x=A_par
-             unsigned max_iter = 15;//n*n*Nx*Ny;
-             const double eps = 1e-4; //PRECISION OF PROCESS: BY HAND. FUTURE INPUT
+             dg::Elliptic3d<dg::x::CylindricalGrid3d, dg::x::HMatrix, dg::x::HVec> laplaceM(grid, dg::DIR, dg::DIR, dg::DIR, dg::centered); //DOn't know why this grid does not work
+             laplaceM.set_compute_in_2d(true);
+             const dg::x::HVec vol2d = dg::create::volume(grid);     //x=A_par
+             unsigned max_iter = 2000;//n*n*Nx*Ny;
+             const double eps = 1e-6; //PRECISION OF PROCESS: BY HAND. INPUT FROM ELLIPTIC
              dg::x::HVec A_par=dg::evaluate( dg::zero, grid);
-             dg::PCG<dg::DVec > pcg( A_par, max_iter);
-	      auto inverse_op = [&] ( const auto& y, auto& x)
-		{
-   		 pcg.solve( laplaceM, x, y, 1., vol2d, eps);
-		};
-             dg::blas2::symv( inverse_op, J_par, A_par);
+             dg::PCG<dg::x::HVec > pcg( A_par, max_iter);
+	     // auto inverse_op = [&] ( const auto& y, auto& x)
+		//{
+   	     pcg.solve( laplaceM, A_par, J_par, 1., vol2d, eps);
+		//};
+             //dg::blas2::symv( inverse_op, J_par, A_par);
 
              //------------------------------
              
-             
+             dg::assign( A_par, y0[1][0]);
+             //dg::assign( A_par, y0[1][1]);
              
              
              
