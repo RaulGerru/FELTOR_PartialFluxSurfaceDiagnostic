@@ -472,7 +472,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              dg::blas1::pointwiseDivide(J_par, ni, ui_PS);
              dg::blas1::scal(ui_PS, 1-factor);
              
-             dg::x::HVec ue_final=ue_PS, ui_final=ui_PS;
+             dg::x::HVec ue_final=ue_PS, ui_final=ui_PS, ue_SOL_f=ue_SOL, ui_SOL_f=ui_SOL_f;
 	     
 	     double alpha_ue_core_damping=js["velocity"].get("alpha", 0.1).asDouble(); 
 	     double boundary_ue_core_damping=js["velocity"].get("boundary", 1.02).asDouble();  
@@ -486,7 +486,8 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              dg::blas1::pointwiseDot(ue_PS, damping, ue_final);
              dg::blas1::pointwiseDot(ui_PS, damping, ui_final);
              
-             
+             dg::blas1::nanto0(ue_SOL, ue_SOL_f);
+             dg::blas1::nanto0(ui_SOL, ui_SOL_f);
              
              dg::blas1::axpby(1.0, ue_SOL, 1.0, ue_final);
              dg::blas1::axpby(1.0, ui_SOL, 1.0, ui_final);
