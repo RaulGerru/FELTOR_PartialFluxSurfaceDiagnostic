@@ -430,8 +430,6 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
                         { ue = ni*ui/ne;}, y0[0][0], y0[0][1],
                         y0[1][0], y0[1][1]);
             dg::assign(y0[1][0], ue_SOL); //We =Ue_SOL
-            DG_RANK0 std::cout << "# Initialize aparallel with "<<atype << std::endl;
-            // ue = Ui
             if( !(atype == "zero") && !(atype == "PS"))
             {
                 throw dg::Error(dg::Message(_ping_)<<"Warning! aparallel type '"<<atype<<"' not recognized. I have beta = "<<p.beta<<" ! I don't know what to do! I exit!\n");
@@ -475,43 +473,39 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              dg::blas1::scal(ui_PS, 1-factor);
              
              dg::x::HVec ue_final=ue_PS, ui_final=ui_PS;
-             
-	     //TO DO NOT COUNT PS FLOW IN SOL. FOR THE MOMENT LET's IGNORE IT
-	     /*
-	     double alpha_ue_core_damping=0.01; //FUTURE INPUTS
-	     double boundary_ue_core_damping=1;  //FUTURE INPUTS
+	     
+	     double alpha_ue_core_damping=js["velocity"].get("alpha", 0.1).asDouble(); 
+	     double boundary_ue_core_damping=js["velocity"].get("boundary", 1.02).asDouble();  
 	     dg::x::HVec xpoint = detail::xpoint_damping( grid, mag);
 	     dg::x::HVec damping_CORE = dg::evaluate( dg::one, grid), damping_pre=damping_CORE, damping=damping_CORE;
 	     
              damping_CORE = dg::pullback(dg::compose(dg::PolynomialHeaviside(boundary_ue_core_damping-alpha_ue_core_damping/2., alpha_ue_core_damping/2., -1), dg::geo::RhoP(mag)), grid);
-	     
-	     
-        //dg::blas1::evaluate( damping1, dg::equals(), []DG_DEVICE(double x, double y)
-        //        { return x+y-x*y;}, xpoint, damping1);
+
              dg::blas1::pointwiseDot( damping_CORE, xpoint, damping_pre);
              dg::blas1::nanto0(damping_pre, damping);				
-             //dg::blas1::pointwiseDot(ue_CORE, damping, ue_final);
-             //dg::blas1::pointwiseDot(ui_CORE, damping, ui_final);
-             */
+             dg::blas1::pointwiseDot(ue_PS, damping, ue_final);
+             dg::blas1::pointwiseDot(ui_PS, damping, ui_final);
+             
              
              
              dg::blas1::axpby(1.0, ue_SOL, 1.0, ue_final);
              dg::blas1::axpby(1.0, ui_SOL, 1.0, ui_final);
              
              if ( atype == "zero") 
-             {                         
-             dg::assign( ue_PS, y0[1][0]);
-             dg::assign( ui_PS, y0[1][1]);
+             {        
+             DG_RANK0 std::cout << "# Initialize aparallel with "<<atype << std::endl;                 
+             dg::assign( ue_final, y0[1][0]);
+             dg::assign( ui_final, y0[1][1]);
              }
              
           if( atype == "PS")
-            {
+            {DG_RANK0 std::cout << "# Initialize aparallel with "<<atype << std::endl;
             //COMPUTATION OF INVERSE LAPLACE FOR INITIAL A_1,|| DEFINED BY PS Current
              dg::Elliptic3d<dg::x::CylindricalGrid3d, dg::x::HMatrix, dg::x::HVec> laplaceM(grid, dg::NEU, dg::NEU, dg::DIR, dg::centered); //DOn't know why this grid does not work
              laplaceM.set_compute_in_2d(true);
-             const dg::x::HVec vol2d = dg::create::volume(grid);     //x=A_par
-             unsigned max_iter = 200000;//n*n*Nx*Ny;
-             const double eps = 1e-4; //PRECISION OF PROCESS: BY HAND. INPUT FROM ELLIPTIC
+             const dg::x::HVec vol2d = dg::create::volume(grid);     
+             unsigned max_iter = js.get("n", 3).asDouble()*js.get("n", 3).asDouble()*js.get("Nx", 100).asDouble()*js.get("Ny", 300).asDouble();//n*n*Nx*Ny;
+             const double eps = js["eps_pol"].get(0, 0.2).asDouble(); 
              dg::x::HVec A_par=dg::evaluate( dg::zero, grid);
              dg::PCG<dg::x::HVec > pcg( A_par, max_iter);
    	     pcg.solve( laplaceM, A_par, J_par, 1., vol2d, eps);
@@ -521,20 +515,12 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              dg::assign( ue_final, y0[1][0]);
              dg::assign( ui_final, y0[1][1]);
             }
-             
-             
-             
            } //PS BRACKET
-     
-	 
         } //ui utype
         else
             throw dg::Error(dg::Message()<< "Invalid velocity initial condition "<<utype<<"\n");
     } //fields
-    
-  
-    
-    
+
     else if( "restart" == type)
     {
         std::string file = js["init"]["file"].asString();
