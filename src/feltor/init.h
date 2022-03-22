@@ -476,7 +476,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
 	     
              damping_CORE = dg::pullback(dg::compose(dg::PolynomialHeaviside(boundary_ue_core_damping-alpha_ue_core_damping/2., alpha_ue_core_damping/2., -1), dg::geo::RhoP(mag)), grid);
 	     
-             dg::blas1::pointwiseDot( xpoint_damping( grid, mag), damping_CORE, , damping_CORE);
+             dg::blas1::pointwiseDot( detail::xpoint_damping( grid, mag), damping_CORE, damping_CORE);
              dg::blas1::nanto0(damping_CORE, damping);				
              dg::blas1::pointwiseDot(ue_PS, damping, ue_final);
              dg::blas1::pointwiseDot(ui_PS, damping, ui_final);

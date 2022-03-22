@@ -10,7 +10,7 @@ CFLAGS=-Wall -std=c++14 -restrict -fp-model precise -fimf-arch-consistency=true 
 INCLUDE += -I$(HOME)/include # cusp, thrust
 INCLUDE += -I$(NETCDF_INC) -I$(HDF5_INC) -I$(JSONCPP_INC)
 JSONLIB=-L$(JSONCPP_LIB) -ljsoncpp
-LIBS    +=-L$(HDF5_LIB) -lhdf5 -lhdf5_hl
+LIBS    =-L$(HDF5_LIB) -lhdf5 -lhdf5_hl
 LIBS    +=-L$(NETCDF_LIB) -lnetcdf -lcurl
 endif
 #############################modules to load in .bashrc#######################
