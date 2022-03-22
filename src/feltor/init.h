@@ -423,13 +423,15 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
             dg::x::HVec ui_SOL, ue_SOL;
             dg::assign3dfrom2d( coord2d, ui_SOL, grid);
             dg::blas1::scal( ui_SOL, sqrt( 1.0+p.tau[1]));
-            std::string atype = js["aparallel"].get("type", "zero").asString();
             dg::assign( ui_SOL, y0[1][1]); // Wi = Ui_SOL 
             dg::blas1::subroutine( [] DG_DEVICE( double ne, double ni,
                             double& ue, double ui)
                         { ue = ni*ui/ne;}, y0[0][0], y0[0][1],
                         y0[1][0], y0[1][1]);
             dg::assign(y0[1][0], ue_SOL); //We =Ue_SOL
+            
+            std::string atype = js["aparallel"].get("type", "zero").asString();
+            
             if( !(atype == "zero") && !(atype == "PS"))
             {
                 throw dg::Error(dg::Message(_ping_)<<"Warning! aparallel type '"<<atype<<"' not recognized. I have beta = "<<p.beta<<" ! I don't know what to do! I exit!\n");
@@ -437,12 +439,6 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
 
 	 if(uprofile == "PS")
             {        
-             dg::blas1::subroutine( [] DG_DEVICE( double ne, double ni,
-                            double& ue, double ui)
-                        { ue = ni*ui/ne;}, y0[0][0], y0[0][1],
-                        y0[1][0], y0[1][1]);
-                        
-             dg::assign(y0[1][0], ue_SOL); //We =Ue =Ui
              double factor=0.9; //FUTURE INPUT
              double A=mag.params().a();
              double C1=(1-A)/mag.R0();
@@ -476,19 +472,15 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
 	     
 	     double alpha_ue_core_damping=js["velocity"].get("alpha", 0.1).asDouble(); 
 	     double boundary_ue_core_damping=js["velocity"].get("boundary", 1.02).asDouble();  
-	     dg::x::HVec xpoint = detail::xpoint_damping( grid, mag);
-	     dg::x::HVec damping_CORE = dg::evaluate( dg::one, grid), damping_pre=damping_CORE, damping=damping_CORE;
+	     dg::x::HVec damping_CORE = dg::evaluate( dg::one, grid), damping=damping_CORE;
 	     
              damping_CORE = dg::pullback(dg::compose(dg::PolynomialHeaviside(boundary_ue_core_damping-alpha_ue_core_damping/2., alpha_ue_core_damping/2., -1), dg::geo::RhoP(mag)), grid);
 	     
-
-             dg::blas1::pointwiseDot( damping_CORE, xpoint, damping_pre);
-             dg::blas1::nanto0(damping_pre, damping);				
+             dg::blas1::pointwiseDot( xpoint_damping( grid, mag), damping_CORE, , damping_CORE);
+             dg::blas1::nanto0(damping_CORE, damping);				
              dg::blas1::pointwiseDot(ue_PS, damping, ue_final);
              dg::blas1::pointwiseDot(ui_PS, damping, ui_final);
-             
-             
-             
+
              dg::blas1::axpby(1.0, ue_SOL, 1.0, ue_final);
              dg::blas1::axpby(1.0, ui_SOL, 1.0, ui_final);
              
