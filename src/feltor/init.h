@@ -344,6 +344,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
     const dg::geo::TokamakMagneticField& mag,
     const dg::geo::TokamakMagneticField& unmod_mag,
     dg::file::WrappedJsonValue js,
+    dg::file::WrappedJsonValue ms,
     double & time, dg::geo::CylindricalFunctor& sheath_coordinate )
 {
 #ifdef WITH_MPI
@@ -440,7 +441,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
 	 if(uprofile == "PS")
             {        
              double factor=0.9; //FUTURE INPUT
-             double A=mag.params().a();
+             double A=ms["params"].get("A", 0.0).asDouble();
              double C1=(1-A)/mag.R0();
              double C2=A/mag.R0();
              dg::x::HVec ne, ni;
@@ -452,7 +453,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              dg::x::HVec I=dg::evaluate( dg::one, grid);
              dg::blas1::axpby(-2*A/mag.R0(), psip, 1.0, I);
              dg::blas1::transform( I, I, dg::SQRT<double>());
-             
+             //dg::blas1::scal(I, A);
              dg::x::HVec B = dg::pullback( dg::geo::Bmodule(mag), grid);
                
              dg::x::HVec J_par_1=dg::construct<dg::x::HVec>(
