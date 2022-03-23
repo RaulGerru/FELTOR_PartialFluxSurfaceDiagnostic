@@ -483,8 +483,6 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
 	     dg::blas1::nanto0(ui_PS, ui_pos);
 	     dg::blas1::pointwiseDot(ue_pos, damping, ue_final);
              dg::blas1::pointwiseDot(ui_pos, damping, ui_final);
-		//dg::assign( ue_PS, y0[1][0]);
-             	//dg::assign( ui_PS, y0[1][1]);
              dg::blas1::axpby(1.0, ue_SOL, 1.0, ue_final);
              dg::blas1::axpby(1.0, ui_SOL, 1.0, ui_final);
              
@@ -501,8 +499,8 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
              dg::Elliptic3d<dg::x::CylindricalGrid3d, dg::x::HMatrix, dg::x::HVec> laplaceM(grid, dg::NEU, dg::NEU, dg::DIR, dg::centered); //DOn't know why this grid does not work
              laplaceM.set_compute_in_2d(true);
              const dg::x::HVec vol2d = dg::create::volume(grid);     
-             unsigned max_iter = js.get("n", 3).asDouble()*js.get("n", 3).asDouble()*js.get("Nx", 100).asDouble()*js.get("Ny", 300).asDouble();//n*n*Nx*Ny;
-             const double eps = js["eps_pol"].get(0, 0.2).asDouble(); 
+             unsigned max_iter = 200000; //js.get("n", 3).asDouble()*js.get("n", 3).asDouble()*js.get("Nx", 100).asDouble()*js.get("Ny", 300).asDouble();//n*n*Nx*Ny;
+             const double eps = 1e-4; //js["eps_pol"].get(0, 0.2).asDouble(); 
              dg::x::HVec A_par=dg::evaluate( dg::zero, grid);
              dg::PCG<dg::x::HVec > pcg( A_par, max_iter);
    	     pcg.solve( laplaceM, A_par, J_par, 1., vol2d, eps);
