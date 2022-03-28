@@ -11,7 +11,7 @@ INCLUDE+= -I../../inc   # other project libraries
 
 all: feltor feltor_hpc feltor_mpi manufactured manufactured_perp manufactured_para feltordiag interpolate_in_3d
 
-feltordiag: feltordiag.cu feltordiag_conserv.h
+feltordiag: feltordiag_conserv.cu feltordiag_conserv.h
 	$(CC) $(OPT) $(CFLAGS) $< -o $@ $(INCLUDE) $(LIBS) $(JSONLIB) -g $(VERSION_FLAGS)
 
 interpolate_in_3d: interpolate_in_3d.cu feltordiag.h

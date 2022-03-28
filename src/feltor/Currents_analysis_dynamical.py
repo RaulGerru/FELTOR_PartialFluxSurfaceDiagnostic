@@ -15,16 +15,18 @@ import matplotlib.widgets
 from matplotlib.animation import FuncAnimation
 import mpl_toolkits.axes_grid1
 import sys
+sys.path.append('/home/raulgerru//Desktop/feltorutilities/xFELTOR')
+from xfeltor import open_feltordataset
 
-sys.modules[__name__].__dict__.clear()
+#sys.modules[__name__].__dict__.clear()
 
 
 
 #fn = "/home/raulgerru/Desktop/PhD files/Research/FELTOR/SIMULATIONS/Diag_test_files/conservation_test_partial_gf_1+2+3_diag.nc"
 #fn = "/home/raulgerru/Desktop/PhD files/Research/FELTOR/SIMULATIONS/Sheath tests/conservation_sheath_1+2+3_diag.nc"
 #fn = "/home/raulgerru/Desktop/PhD files/Research/FELTOR/SIMULATIONS/Sheath tests/sheath_test_LCFS_025_0_diag.nc"
-fn = "/home/raulgerru/Desktop/PhD files/Research/FELTOR/SIMULATIONS/Sheath tests/sheath_test_010_pen0_diag.nc"
-ds = nc.Dataset(fn)
+fn = "/home/raulgerru//Desktop/SIMULATIONS/New_version_Tests/SOL_test/SOL_test_1_diag.nc"
+ds = open_feltordataset(fn)#nc.Dataset(fn)
 inputfile = ds.inputfile
 inputfile_json = json.loads(inputfile)
 
@@ -179,8 +181,10 @@ def edge_plot(magnitude, title, cmin=None, cmax=None, axes=None ):
         ax1 = axes
     #cmin = -0.05
     #cmax = 0.05
-    p = plt.pcolor(rho[(rho > rho_min) & (rho < rho_max)], (eta - math.pi) / math.pi,
-                   filter_image(magnitude[:, (rho > rho_min) & (rho < rho_max)]), cmap='jet',  vmin=cmin, vmax=cmax)#, shading='gouraud')
+    m_rho=rho.where((rho > rho_min) & (rho < rho_max)).values[0][:]
+    m_rho_f=m_rho[np.isfinite(m_rho)]
+    p = plt.pcolor(m_rho_f, (eta - math.pi) / math.pi,
+                   filter_image(magnitude[:, np.isfinite(m_rho)]), cmap='jet',  vmin=cmin, vmax=cmax)#, shading='gouraud')
     ax1.axvline(x=1, color='k', linestyle='--')
     ax1.axhline(-0.5, color='w', linestyle='--')
     ax1.axhline(0, color='w', linestyle='--')
@@ -365,24 +369,24 @@ rho_min = 0.6
 rho_max = 1.1
 
 
-dt_Omega_E=ds['v_Omega_E_2dX'][:]
-dt_Omega_E_gf=ds['v_Omega_E_gf_2dX'][:]
-dt_Omega_E_TK=ds['v_Omega_E_cta2d'][:]
-dt_Omega_E_TK_fluct=ds['v_Omega_E_fluc2d'][:]
-dt_Omega_E_TK=ds['v_Omega_E_gf_cta2d'][:]
-dt_Omega_E_TK_fluct=ds['v_Omega_E_gf_fluc2d'][:]
-dt_Omega_E_gf=ds['v_Omega_E_gf_2dX'][:]
-dt_Omega_E_fsa=ds['v_Omega_E_fsa'][:]
-dt_Omega_E_gf_fsa=ds['v_Omega_E_gf_fsa'][:]
-dt_Omega_D=ds['v_Omega_D_2dX'][:]
-dt_Omega_D_gf=ds['v_Omega_D_gf_2dX'][:]
-dt_Omega_D_fsa=ds['v_Omega_D_fsa'][:]
-dt_Omega_D_gf_fsa=ds['v_Omega_D_gf_fsa'][:]
-dt_Omega_D_TK=ds['v_Omega_D_cta2d'][:]
-dt_Omega_D_TK_fluct=ds['v_Omega_D_fluc2d'][:]
-
+dt_Omega_E=ds['v_Omega_E_2dX'].diff(0)#[:]
+dt_Omega_E_gf=ds['v_Omega_E_gf_2dX'].diff(0)#[:]
+dt_Omega_E_TK=ds['v_Omega_E_cta2d'].diff(0)#[:]
+dt_Omega_E_TK_fluct=ds['v_Omega_E_fluc2d'].diff(0)#[:]
+dt_Omega_E_TK=ds['v_Omega_E_gf_cta2d'].diff(0)#[:]
+dt_Omega_E_TK_fluct=ds['v_Omega_E_gf_fluc2d'].diff(0)#[:]
+dt_Omega_E_gf=ds['v_Omega_E_gf_2dX'].diff(0)#[:]
+dt_Omega_E_fsa=ds['v_Omega_E_fsa'].diff(0)#[:]
+dt_Omega_E_gf_fsa=ds['v_Omega_E_gf_fsa'].diff(0)#[:]
+dt_Omega_D=ds['v_Omega_D_2dX'].diff(0)#[:]
+dt_Omega_D_gf=ds['v_Omega_D_gf_2dX'].diff(0)#[:]
+dt_Omega_D_fsa=ds['v_Omega_D_fsa'].diff(0)#[:]
+dt_Omega_D_gf_fsa=ds['v_Omega_D_gf_fsa'].diff(0)#[:]
+dt_Omega_D_TK=ds['v_Omega_D_cta2d'].diff(0)#[:]
+dt_Omega_D_TK_fluct=ds['v_Omega_D_fluc2d'].diff(0)#[:]
+'''
 for i in range(1, t.size):
-    dt_Omega_E[:][i-1] = ds['v_Omega_E_2dX'][:][i] - ds['v_Omega_E_2dX'][:][i - 1]
+    dt_Omega_E[i-1] = ds['v_Omega_E_2dX'][i] - ds['v_Omega_E_2dX'][i - 1]
     dt_Omega_D[:][i-1] = ds['v_Omega_D_2dX'][:][i] - ds['v_Omega_D_2dX'][:][i - 1]
     dt_Omega_E_gf[:][i - 1] = ds['v_Omega_E_gf_2dX'][:][i] - ds['v_Omega_E_gf_2dX'][:][i - 1]
     dt_Omega_D_gf[:][i - 1] = ds['v_Omega_D_gf_2dX'][:][i] - ds['v_Omega_D_gf_2dX'][:][i - 1]
@@ -396,7 +400,7 @@ for i in range(1, t.size):
     #dt_Omega_D_TK_gf[:][i - 1] = ds['v_Omega_D_gf_cta2d'][:][i] - ds['v_Omega_D_gf_cta2d'][:][i - 1]
     dt_Omega_E_TK_fluct[:][i - 1] = ds['v_Omega_E_fluc2d'][:][i] - ds['v_Omega_E_fluc2d'][:][i - 1]
     dt_Omega_D_TK_fluct[:][i - 1] = ds['v_Omega_D_fluc2d'][:][i] - ds['v_Omega_D_fluc2d'][:][i - 1]
-
+'''
 dt_Omega_E_ta=time_average(dt_Omega_E)
 dt_Omega_D_ta=time_average(dt_Omega_D)
 dt_Omega_E_gf_ta=time_average(dt_Omega_E_gf)
@@ -518,10 +522,11 @@ RHS_ta=np.mean(RHS, axis=0)
 RHS_fsa_ta=np.mean(RHS_fsa, axis=0)
 RHS_gf_fsa_ta=np.mean(RHS_gf_fsa, axis=0)
 
-#edge_animation_bar_5(dt_Omega, r'$\partial_t\Omega_E$', advection, r'$-\nabla\cdot\nabla\cdot(\omega u_E)$', J_par, r'$\nabla\cdot(j_\parallel \hat{b})$', J_curv,r'$\nabla\cdot j_{curv}$', J_b_perp, r'$\nabla\cdot j_{b_\perp}$' )
+#edge_animation_bar_5(dt_Omega.values(), r'$\partial_t\Omega_E$', advection.values(), r'$-\nabla\cdot\nabla\cdot(\omega u_E)$', J_par.values(), r'$\nabla\cdot(j_\parallel \hat{b})$', J_curv.values(),r'$\nabla\cdot j_{curv}$', J_b_perp.values(), r'$\nabla\cdot j_{b_\perp}$' )
 
 
-
+#RHS.feltor.animate2D(x="psi", y="eta", fps=100)
+#plt.show()
 
 '''
 E_r = ds['RFB_E_r_tt_2dX'][:]
@@ -636,3 +641,4 @@ CONCLUSIONS FROM ADVECTION
 6. Mem nabla b is extremely small (order 10^-9)
 *LIttle difference between grad B and curv term
 
+'''
