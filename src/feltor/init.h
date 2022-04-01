@@ -99,7 +99,7 @@ dg::x::HVec pfr_damping(
         dg::blas1::evaluate( damping1, dg::equals(), []DG_DEVICE(double x, double y)
                 { return x+y-x*y;}, xpoint, damping1);
         // Set Intersection
-        dg::blas1::pointwiseDot( damping0, damping1, damping);
+        dg::blas1::pointwiseDot( damping, damping1, damping);
     }
     return damping;
 }
@@ -344,7 +344,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
     const dg::geo::TokamakMagneticField& mag,
     const dg::geo::TokamakMagneticField& unmod_mag,
     dg::file::WrappedJsonValue js,
-    dg::file::WrappedJsonValue ms
+    dg::file::WrappedJsonValue ms,
     double & time, dg::geo::CylindricalFunctor& sheath_coordinate )
 {
 #ifdef WITH_MPI
