@@ -401,7 +401,7 @@ std::vector<Record_static> diagnostics2d_static_list = {
             result = dg::pullback( v.mag.psip(), grid);
         }
     },
-    /*
+    
     { "PsipR2d", "Flux-function psi R-derivative",
         []( dg::x::HVec& result, Variables& v, dg::x::CylindricalGrid3d& grid ){
             result = dg::pullback( v.mag.psipR(), grid);
@@ -427,7 +427,6 @@ std::vector<Record_static> diagnostics2d_static_list = {
             result = dg::pullback( v.mag.psipZZ(), grid);
         }
     },
-    */
     { "Ipol", "Poloidal current",
         []( dg::x::HVec& result, Variables& v, dg::x::CylindricalGrid3d& grid ){
             result = dg::pullback( v.mag.ipol(), grid);
@@ -623,7 +622,7 @@ std::vector<Record> diagnostics2d_list = {
     //        v.f.compute_lapMperpA( result);
     //    }
     //},
-    /*
+    
     {"dssue", "2nd parallel derivative of electron velocity", false,
         []( dg::x::DVec& result, Variables& v ) {
             dg::blas1::copy( v.f.dssU( 0), result);
@@ -682,7 +681,7 @@ std::vector<Record> diagnostics2d_list = {
                 v.f.potential(0), v.f.density(0), result);
         }
     },
-    */
+    
     /// ------------------ Density terms ------------------------//
     {"jsneE_tt", "Radial electron particle flux: ExB contribution (Time average)", true,
         []( dg::x::DVec& result, Variables& v ) {
@@ -1484,6 +1483,7 @@ std::vector<Record> diagnostics2d_list = {
         dg::blas1::scal( result, v.p.mu[1]);
         }
     },
+/*
      {"v_Omega_E_gf", "Electric PCD GF", false, //CHECKED
         []( dg::x::DVec& result, Variables& v) {
 	    dg::blas1::pointwiseDot(v.f.binv(), v.f.binv(), v.tmp2[0]);
@@ -1493,6 +1493,7 @@ std::vector<Record> diagnostics2d_list = {
         dg::blas1::scal( result, v.p.mu[1]);
         }
     },
+*/
     {"v_Omega_D", "Diamagnetic PCD", false, //CHECKED
         []( dg::x::DVec& result, Variables& v) {         
          dg::blas1::pointwiseDot(v.f.binv(), v.f.binv(), v.tmp2[0]);
@@ -1501,6 +1502,7 @@ std::vector<Record> diagnostics2d_list = {
          dg::blas1::scal( result, v.p.mu[1]*v.p.tau[1]);
         }
     },
+/*
     {"v_Omega_D_gf", "Diamagnetic PCD GF", false, //CHECKED
         []( dg::x::DVec& result, Variables& v) {
          dg::blas1::pointwiseDot(v.f.binv(), v.f.binv(), v.tmp2[0]);
@@ -1509,7 +1511,7 @@ std::vector<Record> diagnostics2d_list = {
          dg::blas1::scal( result, v.p.mu[1]*v.p.tau[1]);
         }
     },
-    
+  */  
     {"v_vort_E_tt", "Electric PCD (time integrated)", true,
         []( dg::x::DVec& result, Variables& v) {
 			 dg::blas1::pointwiseDot(v.f.density(0), v.f.binv(), v.tmp2[0]);
@@ -1560,6 +1562,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal( result, v.p.mu[1]);
         }
     },
+/*
     {"v_adv_E_gf_tt", "Electric advective term GF (time integrated)", true,
         []( dg::x::DVec& result, Variables& v) {//CHECKED
 			 routines::times(v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E
@@ -1590,6 +1593,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp[0], v.tmp[1], result);//Div(Div(n_e Grad_phi/B^2 )*u_E+  ne grad(phi)/B^2*div(u_E)  )
         }
     },
+*/
     {"v_adv_E_main_tt", "Main electric advective term (time integrated)", true, 
         []( dg::x::DVec& result, Variables& v) {            
 			 routines::times(v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E
@@ -1600,8 +1604,7 @@ std::vector<Record> diagnostics2d_list = {
              routines::scal(result, v.tmp, v.tmp);  //Div(n_e Grad_phi/B^2 )*u_E
              v.nabla.div(v.tmp[0], v.tmp[1], result);//Div(Div(n_e Grad_phi/B^2 )*u_E)
         }
-    },
-    
+    },  
     {"v_adv_E_alt_tt", "Alternative electric advective term (time integrated)", true, 
         []( dg::x::DVec& result, Variables& v) {            
 			 routines::times(v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E
@@ -1629,6 +1632,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp[0], v.tmp[1], result);
         }
     },
+/*
     {"v_adv_E_main_r_tt", "Main electric advective term in radial direction (time integrated)", true, 
         []( dg::x::DVec& result, Variables& v) {            
 			 routines::times(v.f.binv(),v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E			 
@@ -1653,6 +1657,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp[0], v.tmp[1], result);
         }
     },
+*/
     {"v_adv_D_tt", "Diamagnetic advective term (time integrated)", true,
         []( dg::x::DVec& result, Variables& v) { //CHECKED
 			 routines::times(v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E
@@ -1667,6 +1672,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal( result, v.p.mu[1]*v.p.tau[1]);
         }
     },
+/*
     {"v_adv_D_gf_tt", "Diamagnetic advective term GF (time integrated)", true,
         []( dg::x::DVec& result, Variables& v) { //CHECKED
 			 routines::times(v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E
@@ -1695,6 +1701,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal(result, v.p.tau[1]);
         }
     },
+*/
     {"v_adv_D_main_tt", "Main diamagnetic term (time integrated)", true, 
         []( dg::x::DVec& result, Variables& v) {            
 			 routines::times(v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E
@@ -1733,7 +1740,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal(result, v.p.tau[1]);            
         }
     },
-    
+  /*  
     {"v_adv_D_main_r_tt", "Main diamagnetic term in radial direction (time integrated)", true, 
         []( dg::x::DVec& result, Variables& v) {            
 			 routines::times(v.f.binv(),v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E			 
@@ -1758,7 +1765,8 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal(result, v.p.tau[1]);              
         }
     },
-   	/*
+*/
+   	
       {"v_adv_par_E_tt", "Parallel advective term (time integrated)", true, //COMMENT: THIS TERM IS BY CONSTRUCTION INCOHERENT, AS WE ARE USING Ui WHEN IT ARISES FROM ASSUMING Ui!=ui, but ui is innaccesible
         []( dg::x::DVec& result, Variables& v) {//CHECKED
 			 dg::blas1::pointwiseDot(v.f.binv(), v.f.binv(), v.tmp[0]);
@@ -1771,7 +1779,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div_par(v.tmp[0], v.tmp[1], v.tmp[2], result);//Div(Div(n_e Ui Grad_phi/B^2 )*bhat)
         }
     },
-
+/*
      {"v_adv_par_E_gf_tt", "Parallel GF advective term (time integrated)", true, //Comment: This term is by definition incoherent, as we are using the gyrofluid ion density, which this term does not appear on
         []( dg::x::DVec& result, Variables& v) {//CHECKED
 			 dg::blas1::pointwiseDot(v.f.binv(), v.f.binv(), v.tmp[0]);
@@ -1784,6 +1792,7 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div_par(v.tmp[0], v.tmp[1], v.tmp[2], result);///Div(Div(Ni Ui Grad_phi/B^2 )*bhat)
         }
     },
+*/
     {"v_adv_par_D_tt", "Diamagnetic parallel advective term (time integrated)", true, //comment: as incoherent as the previous ones
         []( dg::x::DVec& result, Variables& v) { //CHECKED
 			 dg::blas1::pointwiseDot(v.f.binv(), v.f.binv(), v.tmp[0]);
@@ -1796,6 +1805,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal(result, v.p.tau[1]);
         }
     },
+/*
     {"v_adv_par_gf_tt", "Diamagnetic parallel advective term GF (time integrated)", true, //comment: as incoherent as the previous
         []( dg::x::DVec& result, Variables& v) { //CHECKED
 			 dg::blas1::pointwiseDot(v.f.binv(), v.f.binv(), v.tmp[0]);
@@ -1808,7 +1818,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal(result, v.p.tau[1]);
         }
     },
-    */
+    
     {"v_EXTRA_GF_tt", "Parallel Magnetization GF term (time integrated)", true,
         []( dg::x::DVec& result, Variables& v) { //CHECKED
 			 dg::blas1::pointwiseDot(v.f.binv(), v.f.divNUb(1), v.tmp[0]);
@@ -1818,7 +1828,7 @@ std::vector<Record> diagnostics2d_list = {
 			 dg::blas1::scal( result, v.p.mu[1]*v.p.tau[1]*0.5);
         }
     },
-	/*
+	
     {"v_EXTRA_GF_alt_tt", "Parallel Magnetization GF term ALTERNATIVE DEFINITION (time integrated)", true,
         []( dg::x::DVec& result, Variables& v) { //CHECKED
 			 dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]); //NiUi
@@ -1831,9 +1841,9 @@ std::vector<Record> diagnostics2d_list = {
 			 v.nabla.div_par(v.tmp[0],v.tmp[1], v.tmp[2], result);
 			 dg::blas1::scal(result, v.p.tau[1]*0.5);
         }
-    },*/
+    },
 	///EXTRA TERMS TO TEST ADVECTION
-	/*
+	
 	{"adv_wE_nabla_UE_tt", "Electric advective term (time integrated)", true, 
         []( dg::x::DVec& result, Variables& v) {
 			 routines::times(v.f.binv(),v.f.bhatgB(), v.f.gradP(0), v.tmp); //u_E			 
@@ -1942,6 +1952,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal( result, v.p.mu[1]*v.p.tau[1]);
         }
     },
+/*
     {"v_M_em_gf_tt", "Magnetization term GF(time integrated)", true,
         []( dg::x::DVec& result, Variables& v) { //CHECKED
 			 routines::scal(v.f.velocity(1), v.f.gradN(1), v.tmp);
@@ -1959,7 +1970,6 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal( result, v.p.mu[1]*v.p.tau[1]);
         }
     },  
-  /*
     {"v_M_em", "Magnetization term", false,
         []( dg::x::DVec& result, Variables& v) {
 			 routines::scal(v.f.velocity(1), v.f.gradN(0), v.tmp);
@@ -2115,6 +2125,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal( result, v.p.mu[1]*v.p.tau[1]*0.5);
         }
     },
+/*
     {"v_J_mag_gf_tt", "Magnetization current term GF (time integrated)", true, //FINAL
         []( dg::x::DVec& result, Variables& v) {
              routines::scal(v.f.velocity(1), v.f.gradN(1), v.tmp);
@@ -2129,7 +2140,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal( result, v.p.mu[1]*v.p.tau[1]*0.5);
         }
     },
-/*
+
     {"v_J_mag", "Magnetization current term", false, //FINAL
         []( dg::x::DVec& result, Variables& v) {
              routines::scal(v.f.velocity(1), v.f.gradN(0), v.tmp);
@@ -2174,6 +2185,7 @@ std::vector<Record> diagnostics2d_list = {
                     
         }
     },
+/*
     {"v_J_bperp_gf_tt", "Div J_par times b_perp term GF (time integrated)", true, //FINAL
         []( dg::x::DVec& result, Variables& v) {
              routines::times(v.f.bhatgB(), v.f.gradA(), v.tmp); //b_perp
@@ -2184,7 +2196,7 @@ std::vector<Record> diagnostics2d_list = {
 
         }
     },
-    /*
+    
      {"v_J_perp", "Perp gradient current term", false, //FINAL
         []( dg::x::DVec& result, Variables& v) {
              routines::times(v.f.bhatgB(), v.f.gradA(), v.tmp); //b_perp
@@ -2335,6 +2347,7 @@ std::vector<Record> diagnostics2d_list = {
         dg::blas1::scal(result, v.p.tau[1]-v.p.tau[0]);
         }
     },
+/*
     {"v_J_D_gf_tt", "Diamagnetic current (time integrated)", true, //FINAL
         []( dg::x::DVec& result, Variables& v) {
         routines::dot(v.f.gradN(1), v.f.curv(), result);
@@ -2344,7 +2357,6 @@ std::vector<Record> diagnostics2d_list = {
         dg::blas1::axpby(-1.0, v.tmp[0], 1.0, result);
         }
     },
-    /*
     {"v_J_D", "Diamagnetic current", false, //FINAL
         []( dg::x::DVec& result, Variables& v) {
         routines::dot(v.f.gradN(0), v.f.curv(), result);
@@ -2369,6 +2381,7 @@ std::vector<Record> diagnostics2d_list = {
             v.nabla.div(v.tmp2[0], v.tmp2[1], result);           
         }
     },
+/*
     {"v_J_JAK_gf_tt", "JAK Parallel current with curvature Kappa term GF(time integrated)", true, //FINAL
         []( dg::x::DVec& result, Variables& v) {
 	    dg::blas1::pointwiseDot(v.f.density(1), v.f.velocity(1), v.tmp[0]);
@@ -2378,7 +2391,6 @@ std::vector<Record> diagnostics2d_list = {
             v.nabla.div(v.tmp2[0], v.tmp2[1], result);
         }
     },    
-/*
     {"v_J_JAK", "JAK Parallel current with curvature Kappa term", false, //FINAL
         []( dg::x::DVec& result, Variables& v) {
 	    dg::blas1::pointwiseDot(v.f.density(0), v.f.velocity(1), v.tmp[0]);
@@ -2412,6 +2424,7 @@ std::vector<Record> diagnostics2d_list = {
         v.nabla.div(v.tmp2[0], v.tmp2[1], result);       
         }
     },
+/*
     {"v_J_NUK_gf_tt", "NUK Curvature current term (time integrated)", true, //FINAL
         []( dg::x::DVec& result, Variables& v) {
         dg::blas1::pointwiseDot(v.f.velocity(0), v.f.velocity(0), v.tmp[0]);
@@ -2425,7 +2438,6 @@ std::vector<Record> diagnostics2d_list = {
         v.nabla.div(v.tmp2[0], v.tmp2[1], result);
         }
     },  
-  /*
     {"v_J_NUK", "NUK Curvature current term", false, //FINAL
         []( dg::x::DVec& result, Variables& v) {
         dg::blas1::pointwiseDot(v.f.velocity(0), v.f.velocity(0), v.tmp[0]);
@@ -2505,7 +2517,7 @@ std::vector<Record> diagnostics2d_list = {
              dg::blas1::scal(result, v.p.tau[1]*v.p.mu[1]);
         }
     },
-    
+    /*
     {"v_S_E_r_tt", "Electric source vorticity in radial direction (time integrated)", true, //FINAL
         []( dg::x::DVec& result, Variables& v) {
 			routines::scal(v.f.density_source(0), v.f.gradP(0), v.tmp); 
@@ -2515,7 +2527,6 @@ std::vector<Record> diagnostics2d_list = {
             v.nabla.div(v.tmp[0], v.tmp[1], result);       
         }
     },
- 
     {"v_S_D_r_tt", "Diamagnetic source vorticity in radial direction (time integrated)", true, //FINAL
         []( dg::x::DVec& result, Variables& v) {
              v.f.compute_gradSN(0,  v.tmp); 
@@ -2525,9 +2536,10 @@ std::vector<Record> diagnostics2d_list = {
              v.nabla.div(v.tmp[0], v.tmp[1], result);
              dg::blas1::scal(result, v.p.tau[1]);      
         }
-    },       
+    },
+*/       
     /// ------------------------ Velocity terms ---------------------------//
-/*  
+  
   {"u_E_tor_tt", "ExB velocity in poloidal direction", true,
         []( dg::x::DVec& result, Variables& v){
             routines::dot( v.f.gradP(0), v.gradPsip, result);
@@ -2596,8 +2608,7 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::pointwiseDot( 1., result, v.f.velocity(1), v.f.velocity(1), 0., result);
             dg::blas1::pointwiseDot(result, v.p.mu[1], result);
         }
-    },
-*/ 
+    }, 
    /// ------------------------ Radial Force Balance ---------------------------//  
    {"RFB_E_r_tt", "Radial electric field in RFB (time integrated)", true,
         []( dg::x::DVec& result, Variables& v){
@@ -2605,19 +2616,22 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::scal( result, -1.);
         }
     },
+/*
      {"RFB_E_r", "Radial electric field in RFB", false,
         []( dg::x::DVec& result, Variables& v){
             routines::radial_project_scal(v.f.gradP(0), v.gradPsip, result);
             dg::blas1::scal( result, -1.);
         }
     },
+*/
    {"RFB_GradPi_tt", "Radial pressure gradient component of RFB (time integrated)", true,
         []( dg::x::DVec& result, Variables& v){
             routines::radial_project_scal(v.f.gradN(0), v.gradPsip, result);
             dg::blas1::pointwiseDivide(result, v.f.density(0), result);
             dg::blas1::scal( result, v.p.tau[1]);
         }
-    },
+    }
+/*
     {"RFB_GradPi", "Radial pressure gradient component of RFB", false,
         []( dg::x::DVec& result, Variables& v){
             routines::radial_project_scal(v.f.gradN(0), v.gradPsip, result);
@@ -2625,7 +2639,7 @@ std::vector<Record> diagnostics2d_list = {
             dg::blas1::scal( result, v.p.tau[1]);
         }
     }
-    
+  */  
 };
 
 // Here is a list of useful 1d variables of general interest
