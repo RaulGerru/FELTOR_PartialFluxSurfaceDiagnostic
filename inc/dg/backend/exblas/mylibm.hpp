@@ -146,7 +146,7 @@ inline static int64_t xadd(int64_t & memref, int64_t x, unsigned char & of)
 
 //msvc doesn't allow inline assembler code
 //If we don't have VCL, then sometimes the assembler code also makes problems
-#if (defined (_WITHOUT_VCL) || defined(_MSC_VER)) && !TSAFE
+#if (defined (_WITHOUT_VCL) || defined (_MSC_VER)) && !TSAFE
 //manually compute non-atomic load-ADDC-store
 	int64_t y = memref;
 	memref = y + x;
@@ -157,6 +157,8 @@ inline static int64_t xadd(int64_t & memref, int64_t x, unsigned char & of)
 	int64_t c63 = (x63 & y63) | (c62 & (x63 | y63));
 	of = c63 ^ c62;
 	return y;
+
+
 #else
     // OF and SF  -> carry=1
     // OF and !SF -> carry=-1
@@ -168,8 +170,8 @@ inline static int64_t xadd(int64_t & memref, int64_t x, unsigned char & of)
      : "+m" (memref), "+r" (oldword), "=q" (of) : : "cc", "memory");
 #else
     asm volatile (LOCK_PREFIX"xadd %1, %0\n"
-        "seto %2"
-     : "+m" (memref), "+r" (oldword), "=q" (of) : : "cc", "memory");
+         "cset %2"         //"seto %2"
+     : "+m" (memref), "+r" (oldword), "=w" (of) : : "cc", "memory");
 #endif //ATT_SYNTAX
     return oldword;
 #endif //_MSC_VER

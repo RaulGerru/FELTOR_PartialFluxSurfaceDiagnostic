@@ -7,7 +7,7 @@ include ../../config/*.mk
 include ../../config/devices/devices.mk
 
 INCLUDE+= -I../         # other src libraries
-INCLUDE+= -I../../inc   # other project libraries
+INCLUDE+= -I../../inc   # other project libraries  
 
 all: feltor feltor_hpc feltor_mpi manufactured manufactured_perp manufactured_para feltordiag interpolate_in_3d
 

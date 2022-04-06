@@ -14,11 +14,16 @@
 //nvcc does not compile the avx512 instruction set, so do not include it
 #ifdef __NVCC__
 #define _WITHOUT_VCL
+#endif
+#ifdef __APPLE__
+#define _WITHOUT_VCL
 #endif//__NVCC__
 #ifdef WITHOUT_VCL
 #define _WITHOUT_VCL
 #endif
 
+#define ARCHS = armv7 armv7s
+#define VALID_ARCHS = armv6 armv7 armv7s arm64
 ////////////////////////////////////////////////////////////////////////
 //include vcl if available
 #ifndef _WITHOUT_VCL

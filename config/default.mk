@@ -16,7 +16,6 @@ OMPFLAG=-fopenmp #openmp flag for CC and MPICC
 #external libraries
 INCLUDE = -I$(HOME)/include# cusp, thrust and the draw libraries
 # the libhdf5-dev package installs *_serial.so libs in order to distinguish from *_openmpi.so
-#LIBS=-lnetcdf -lhdf5_serial -lhdf5_serial_hl # serial netcdf library for file output
 LIBS=-lnetcdf -lhdf5_serial -lhdf5_serial_hl # serial netcdf library for file output
 LAPACKLIB=-llapacke
 JSONLIB= -ljsoncpp # json library for input parameters
