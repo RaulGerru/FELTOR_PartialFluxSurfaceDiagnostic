@@ -122,12 +122,13 @@ dg::x::HVec make_profile(
         double psipO = mag.psip()( RO, ZO);
         double npeak = js.get( "npeak", 1.0).asDouble();
         double nsep = js.get( "nsep", 1.0).asDouble();
+        double psipm=dg::blas1::reduce( dg::evaluate(mag.psip(), grid), -1e10, thrust::maximum<double>());
         profile = dg::pullback( dg::compose(
-                [npeak,nsep,nbg, psipO]DG_DEVICE ( double psip){
+                [npeak,nsep,nbg, psipO, psipm]DG_DEVICE ( double psip){
                     if( psip/psipO  > 0)
-                        return npeak*psip/psipO + nsep*(psipO-psip)/psipO;
+                        return npeak*(psip/psipO) + nsep*(psipO-psip)/psipO;//-psip+1.7;//
                     else
-                        return nbg + exp( (npeak-nsep)/psipO/(nsep-nbg)* psip) *( nsep-nbg);
+                        return nsep*(1-psip/psipO)+npeak*psip/psipO+(nbg-nsep-(npeak-nsep)*(psipm/psipO))*(psip/psipm)*(psip/psipm)*(psip/psipm);//npeak*psip/psipO + nsep*(psipO-psip)/psipO;//nbg + exp( (npeak-nsep)/psipO/(nsep-nbg)* psip) *( nsep-nbg);
                 }, mag.psip()), grid);
     }
     else if ( "gaussian" == type )
@@ -345,7 +346,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
     const dg::geo::TokamakMagneticField& unmod_mag,
     dg::file::WrappedJsonValue js,
     dg::file::WrappedJsonValue ms,
-    double & time, dg::geo::CylindricalFunctor& sheath_coordinate )
+    double & time, dg::geo::CylindricalFunctor& sheath_coordinate, dg::geo::CylindricalFunctor& sheath )
 {
 #ifdef WITH_MPI
     int rank;
@@ -381,7 +382,7 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
             dg::x::HVec density = damping;
             dg::blas1::subroutine( [nbg]( double profile, double ntilde, double
                         damping, double& density)
-                    { density = (profile+ntilde-nbg)*damping+nbg;},
+                                  { density = (profile+ntilde-nbg)*damping+nbg;},
                     profile, ntilde, damping, density);
             //actually we should always invert according to Markus
             //because the dG direct application is supraconvergent
@@ -421,8 +422,11 @@ std::array<std::array<dg::x::DVec,2>,2> initial_conditions(
 
             dg::x::HVec coord2d = dg::pullback( sheath_coordinate,
                     *grid.perp_grid());
-            dg::x::HVec ui_SOL, ue_SOL;
-            dg::assign3dfrom2d( coord2d, ui_SOL, grid);
+            dg::x::HVec coord2d_sheath = dg::pullback( sheath,
+                    *grid.perp_grid());
+            dg::x::HVec ui_SOL, ue_SOL, final_sheath=dg::evaluate( dg::zero, *grid.perp_grid());
+            dg::blas1::pointwiseDot(coord2d, coord2d_sheath, final_sheath);
+            dg::assign3dfrom2d( final_sheath, ui_SOL, grid);
             dg::blas1::scal( ui_SOL, sqrt( 1.0+p.tau[1]));
             dg::assign( ui_SOL, y0[1][1]); // Wi = Ui_SOL 
             dg::blas1::subroutine( [] DG_DEVICE( double ne, double ni,

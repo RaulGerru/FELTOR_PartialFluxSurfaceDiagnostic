@@ -258,7 +258,7 @@ int main( int argc, char* argv[])
 	///---------------- End of FSA and CONVOLUTION definitions ---------------------///
 
 	///----------PARTIAL FSA SECTION (commented just in case we want to activate it at some point)--------------//
-	double eta_0=3*M_PI/2; //NEW: Defining center of partial fsa
+	double eta_0=M_PI/2; //NEW: Defining center of partial fsa
     double eta_range=15.; //NEW: Defining the poloidal range of partial fsa 
 	dg::HVec part_t1d(t1d), part_fsa1d(t1d), part_volX2d(volX2d), part_transferH2dX(volX2d);
 	dg::blas1::pointwiseDot(part_volX2d, dg::evaluate(dg::geo::Grid_cutter(eta_0, eta_range), gridX2d), part_volX2d); //NEW: Define the cutted grid por the partial fsa

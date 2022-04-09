@@ -221,7 +221,7 @@ int main( int argc, char* argv[])
     {
         try{
             y0 = feltor::initial_conditions(feltor, grid, p, mag, unmod_mag,
-                    js["init"], js["magnetic_field"], time, sheath_coordinate );
+                    js["init"], js["magnetic_field"], time, sheath_coordinate, sheath );
 #ifdef WITH_NAVIER_STOKES
             std::string advection = js["advection"].get("type", "velocity-staggered").asString();
             if( advection == "log-staggered")
