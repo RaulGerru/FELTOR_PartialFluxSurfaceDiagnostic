@@ -170,8 +170,8 @@ inline static int64_t xadd(int64_t & memref, int64_t x, unsigned char & of)
      : "+m" (memref), "+r" (oldword), "=q" (of) : : "cc", "memory");
 #else
     asm volatile (LOCK_PREFIX"xadd %1, %0\n"
-         "cset %2"         //"seto %2"
-     : "+m" (memref), "+r" (oldword), "=w" (of) : : "cc", "memory");
+         "seto %2"         //"seto %2"
+     : "+m" (memref), "+r" (oldword), "=q" (of) : : "cc", "memory");
 #endif //ATT_SYNTAX
     return oldword;
 #endif //_MSC_VER
