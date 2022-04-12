@@ -131,7 +131,16 @@ dg::x::HVec make_profile(
                         return nsep*(1-psip/psipO)+npeak*psip/psipO+(nbg-nsep-(npeak-nsep)*(psipm/psipO))*(psip/psipm)*(psip/psipm)*(psip/psipm);//npeak*psip/psipO + nsep*(psipO-psip)/psipO;//nbg + exp( (npeak-nsep)/psipO/(nsep-nbg)* psip) *( nsep-nbg);
                 }, mag.psip()), grid);
     }
-    else if ( "gaussian" == type )
+    else if ( "compassLmode" == type)
+    { double RO=mag.R0(), ZO=0.;
+        dg::geo::findOpoint( mag.get_psip(), RO, ZO);
+        double psipO = mag.psip()( RO, ZO);
+        profile = dg::pullback( dg::compose(
+                [psipO] DG_DEVICE ( double rhop){
+                    return -1.5+10/(1+pow((rhop/0.7116426),3.18245));
+                },  dg::geo::RhoP( mag)), grid);
+    }
+        else if ( "gaussian" == type )
     {
         double x0  = mag.R0() + js.get( "posX", 0.).asDouble() *mag.params().a();
         double y0  = mag.params().a()*js.get( "posY", 0.).asDouble();
